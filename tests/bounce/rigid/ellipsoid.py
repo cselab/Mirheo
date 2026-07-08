@@ -70,7 +70,7 @@ if args.vis:
     u.registerPlugins(mir.Plugins.createDumpParticles('partDump', pv_sol, dump_every, [], 'h5/solvent-'))
     u.registerPlugins(mir.Plugins.createDumpMesh("mesh_dump", pv_rig, dump_every, path="ply/"))
 
-u.registerPlugins(mir.Plugins.createDumpObjectStats("rigStats", pv_rig, dump_every, path="stats"))
+u.registerPlugins(mir.Plugins.createDumpObjectStats("rigStats", pv_rig, dump_every, filename="stats/ellipsoid.csv"))
 
 u.run(5000, dt=dt)
 

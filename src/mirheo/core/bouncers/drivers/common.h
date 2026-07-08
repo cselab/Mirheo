@@ -4,6 +4,15 @@
 namespace mirheo
 {
 
+/** Verbosity of the bounce kernels
+ */
+enum BounceVerbosity {
+    None = 0,    ///< No prints.
+    RescueFails, ///< Print only failed rescues (worst case scenario).
+    BounceFails  ///< Print all bounce failures.
+};
+
+
 /**
    \brief Holds a set of collision information
    \tparam T Information type of one collision

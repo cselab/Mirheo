@@ -38,6 +38,14 @@ __global__ void getExitingObjects(DomainInfo domain, OVview view,
 
     const int bufId = fragment_mapping::getId(dir);
 
+    // Object is marked for deletion if all its particles are marked. The easiest
+    // way to check that is to check the COM (which is computed anyway).
+    // However, we must allow for some numerical error.
+    const bool isMarked = std::fabs(prop.com.x - Real3_int::mark_val)
+                        < 1.0e-5_r * std::fabs(Real3_int::mark_val);
+    if (isMarked)
+        return;  // 1 block == 1 object, all threads agree on the branch.
+
     __shared__ int shDstObjId;
 
     __syncthreads();
@@ -130,7 +138,7 @@ void ObjectRedistributor::prepareSizes(size_t id, cudaStream_t stream)
         const int nthreads = 256;
         const int nblocks  = ovView.nObjects;
 
-        mpark::visit([&](auto packerHandler)
+        std::visit([&](auto packerHandler)
         {
             SAFE_KERNEL_LAUNCH(
                 objec_redistributor_kernels::getExitingObjects<PackMode::Query>,
@@ -142,16 +150,8 @@ void ObjectRedistributor::prepareSizes(size_t id, cudaStream_t stream)
     }
 
     const int nObjs = helper->send.sizes[bulkId];
-    debug2("%d objects of '%s' will leave", ovView.nObjects - nObjs, ov->getCName());
-
-    // Early termination support
-    if (nObjs == ovView.nObjects)
-    {
-        helper->send.sizes[bulkId] = 0;
-        helper->computeSendOffsets();
-        helper->send.uploadInfosToDevice(stream);
-        helper->resizeSendBuf();
-    }
+    debug2("%d objects of '%s' will leave or be removed",
+           ovView.nObjects - nObjs, ov->getCName());
 }
 
 void ObjectRedistributor::prepareData(size_t id, cudaStream_t stream)
@@ -167,14 +167,18 @@ void ObjectRedistributor::prepareData(size_t id, cudaStream_t stream)
     int nObjsBulk = helper->send.sizes[bulkId];
 
     // Early termination - no redistribution
-    if (helper->send.offsets[helper->nBuffers] == 0)
+    if (helper->send.sizes[bulkId] == lov->getNumObjects())
     {
-        debug2("No objects of '%s' leaving, no need to rebuild the object vector",
+        debug2("No objects of '%s' leaving or being removed, no need to rebuild the object vector",
                ov->getCName());
+        helper->send.sizes[bulkId] = 0;
+        helper->computeSendOffsets();
+        helper->send.uploadInfosToDevice(stream);
+        helper->resizeSendBuf();
         return;
     }
 
-    debug2("Downloading %d leaving objects of '%s'", ovView.nObjects - nObjsBulk,
+    debug2("%d leaving or removed objects of '%s'", ovView.nObjects - nObjsBulk,
            ov->getCName());
 
     // Gather data
@@ -184,7 +188,7 @@ void ObjectRedistributor::prepareData(size_t id, cudaStream_t stream)
     const int nthreads = 256;
     const int nblocks  = ovView.nObjects;
 
-    mpark::visit([&](auto packerHandler)
+    std::visit([&](auto packerHandler)
     {
         SAFE_KERNEL_LAUNCH(
             objec_redistributor_kernels::getExitingObjects<PackMode::Pack>,
@@ -196,7 +200,7 @@ void ObjectRedistributor::prepareData(size_t id, cudaStream_t stream)
     lov->resize_anew(nObjsBulk * ov->getObjectSize());
     packer->update(lov, stream);
 
-    mpark::visit([&](auto packerHandler)
+    std::visit([&](auto packerHandler)
     {
         SAFE_KERNEL_LAUNCH(
              objec_redistributor_kernels::unpackObjects,
@@ -233,7 +237,7 @@ void ObjectRedistributor::combineAndUploadData(size_t id, cudaStream_t stream)
 
         const int nthreads = 256;
 
-        mpark::visit([&](auto packerHandler)
+        std::visit([&](auto packerHandler)
         {
             SAFE_KERNEL_LAUNCH(
                 objec_redistributor_kernels::unpackObjects,

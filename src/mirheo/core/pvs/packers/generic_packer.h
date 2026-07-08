@@ -86,14 +86,12 @@ struct GenericPackerHandler
         \param [in] dstId Index of the datum to add to the registered channels (in number of elements).
         \param [in] srcBuffer Source buffer that contains packed data.
         \param [in] numElements Total number of elements that are packed in the buffer.
-        \param [in] eps Only elements that are larger than this tolerance will be added.
         \return The size (in bytes) taken by the packed data (numElements elements)
      */
     __D__ size_t unpackAtomicAddNonZero(int srcId, int dstId,
-                                        const char *srcBuffer, int numElements,
-                                        real eps) const
+                                        const char *srcBuffer, int numElements) const
     {
-        TransformAtomicAdd t {eps};
+        TransformAtomicAdd t;
         return _unpack(t, srcId, dstId, srcBuffer, numElements);
     }
 
@@ -184,10 +182,8 @@ private:
         template <typename T>
         __D__ void operator()(T *addr, T val, __UNUSED int channelId) const
         {
-            type_atomic_add::apply(addr, val, eps);
+            type_atomic_add::apply(addr, val);
         }
-
-        real eps;
     };
 
     template <class Transform>

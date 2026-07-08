@@ -13,9 +13,7 @@
 #include <mirheo/core/plugins.h>
 #include <mirheo/core/pvs/particle_vector.h>
 #include <mirheo/core/pvs/rigid_object_vector.h>
-#include <mirheo/core/snapshot.h>
 #include <mirheo/core/task_scheduler.h>
-#include <mirheo/core/utils/config.h>
 #include <mirheo/core/utils/path.h>
 #include <mirheo/core/utils/restart_helpers.h>
 #include <mirheo/core/walls/interface.h>
@@ -27,6 +25,8 @@
 
 namespace mirheo
 {
+
+constexpr real defaultRc = 1.0_r;
 
 #define TASK_LIST(_)                                                    \
     _( checkpoint                          , "Checkpoint")              \
@@ -137,7 +137,7 @@ static int getRank(const MPI_Comm& comm)
 }
 
 Simulation::Simulation(const MPI_Comm &cartComm, const MPI_Comm &interComm, MirState *state,
-                       CheckpointInfo checkpointInfo, bool gpuAwareMPI) :
+                       CheckpointInfo checkpointInfo, real maxObjHalfLength, bool gpuAwareMPI) :
     MirObject("simulation"),
     nranks3D_(getRank3DInfos(cartComm).nranks3D),
     rank3D_  (getRank3DInfos(cartComm).rank3D  ),
@@ -146,10 +146,10 @@ Simulation::Simulation(const MPI_Comm &cartComm, const MPI_Comm &interComm, MirS
     state_(state),
     checkpointInfo_(checkpointInfo),
     rank_(getRank(cartComm)),
-    gpuAwareMPI_(gpuAwareMPI)
+    gpuAwareMPI_(gpuAwareMPI),
+    maxObjHalfLength_(maxObjHalfLength)
 {
-    // Snapshot mechanism creates its own folders (one per snapshot).
-    if (checkpointInfo_.needDump() && checkpointInfo_.mechanism == CheckpointMechanism::Checkpoint)
+    if (checkpointInfo_.needDump())
         createFoldersCollective(cartComm_, checkpointInfo_.folder);
 
     const auto &domain = state_->domain;
@@ -157,6 +157,7 @@ Simulation::Simulation(const MPI_Comm &cartComm, const MPI_Comm &interComm, MirS
         die("Invalid domain size: [%f %f %f]",
             domain.globalSize.x, domain.globalSize.y, domain.globalSize.z);
     }
+
     info("Simulation initialized, subdomain size is [%f %f %f], subdomain starts "
          "at [%f %f %f]",
          domain.localSize.x, domain.localSize.y, domain.localSize.z,
@@ -335,7 +336,7 @@ void Simulation::registerWall(std::shared_ptr<Wall> wall, int every)
 
 void Simulation::registerInteraction(std::shared_ptr<Interaction> interaction)
 {
-    const std::string& name = interaction->getName();
+    const std::string name = interaction->getName();
 
     if (interactionMap_.find(name) != interactionMap_.end())
         die("More than one interaction is called %s", name.c_str());
@@ -345,7 +346,7 @@ void Simulation::registerInteraction(std::shared_ptr<Interaction> interaction)
 
 void Simulation::registerIntegrator(std::shared_ptr<Integrator> integrator)
 {
-    const std::string& name = integrator->getName();
+    const std::string name = integrator->getName();
 
     if (integratorMap_.find(name) != integratorMap_.end())
         die("More than one integrator is called %s", name.c_str());
@@ -432,8 +433,8 @@ void Simulation::setIntegrator(const std::string& integratorName, const std::str
 {
     if (integratorMap_.find(integratorName) == integratorMap_.end())
         die("No such integrator: %s", integratorName.c_str());
-    auto integrator = integratorMap_[integratorName].get();
 
+    auto integrator = integratorMap_[integratorName].get();
     auto pv = getPVbyNameOrDie(pvName);
 
     if (pvsIntegratorMap_.find(pvName) != pvsIntegratorMap_.end())
@@ -441,9 +442,7 @@ void Simulation::setIntegrator(const std::string& integratorName, const std::str
             pvName.c_str(), pvsIntegratorMap_[pvName].c_str());
 
     pvsIntegratorMap_[pvName] = integratorName;
-
     integrator->setPrerequisites(pv);
-
     integratorPrototypes_.push_back({pv, integrator});
 }
 
@@ -457,7 +456,8 @@ void Simulation::setInteraction(const std::string& interactionName, const std::s
         die("No such interaction: %s", interactionName.c_str());
     auto interaction = interactionMap_[interactionName].get();
 
-    const real rc = interaction->getCutoffRadius();
+    const std::optional<real> oRc = interaction->getCutoffRadius();
+    const real rc = oRc ? *oRc : defaultRc;
     interactionPrototypes_.push_back({rc, pv1, pv2, pv3, interaction});
 }
 
@@ -481,11 +481,12 @@ void Simulation::setWallBounce(const std::string& wallName, const std::string& p
 
     if (wallMap_.find(wallName) == wallMap_.end())
         die("No such wall: %s", wallName.c_str());
+
     auto wall = wallMap_[wallName].get();
 
-    if (auto ov = dynamic_cast<ObjectVector*>(pv))
-        die("Object Vectors can not be bounced from walls in the current implementaion. "
-            "Invalid combination: wall '%s' and OV '%s'", wall->getCName(), ov->getCName());
+    if (auto rv = dynamic_cast<RigidObjectVector*>(pv))
+        die("Rigid Object Vectors can not be bounced from walls in the current implementaion. "
+            "Invalid combination: wall '%s' and ROV '%s'", wall->getCName(), rv->getCName());
 
     wall->setPrerequisites(pv);
     wallPrototypes_.push_back( {wall, pv, maximumPartTravel} );
@@ -548,9 +549,17 @@ void Simulation::applyObjectBelongingChecker(const std::string& checkerName, con
         registerParticleVector(pvOutside, noIC);
     }
 
-    splitterPrototypes_.push_back({checker, pvSource, getPVbyName(inside), getPVbyName(outside)});
+    _applyObjectBelongingChecker(
+            {checker, getPVbyName(inside), getPVbyName(outside), checkEvery},
+            {checker, pvSource, getPVbyName(inside), getPVbyName(outside)});
+}
 
-    belongingCorrectionPrototypes_.push_back({checker, getPVbyName(inside), getPVbyName(outside), checkEvery});
+void Simulation::_applyObjectBelongingChecker(
+        BelongingCorrectionPrototype belongingCorrectionPrototype,
+        SplitterPrototype splitterPrototype)
+{
+    belongingCorrectionPrototypes_.push_back(belongingCorrectionPrototype);
+    splitterPrototypes_.push_back(splitterPrototype);
 }
 
 static void sortDescendingOrder(std::vector<real>& v)
@@ -574,7 +583,7 @@ void Simulation::_prepareCellLists()
     // Deal with the cell-lists and interactions
     for (auto prototype : interactionPrototypes_)
     {
-        real rc = prototype.rc;
+        const real rc = prototype.rc;
         cutOffMap[prototype.pv1].push_back(rc);
         cutOffMap[prototype.pv2].push_back(rc);
         if (prototype.pv3)
@@ -609,7 +618,6 @@ void Simulation::_prepareCellLists()
         auto pvptr = pv.get();
         if (run_->cellListMap[pvptr].empty())
         {
-            const real defaultRc = 1._r;
             bool primary = true;
 
             // Don't use primary cell-lists with ObjectVectors
@@ -647,19 +655,23 @@ void Simulation::_prepareInteractions()
     for (auto& prototype : interactionPrototypes_)
     {
         auto  rc = prototype.rc;
-        auto *pv1 = prototype.pv1;
-        auto *pv2 = prototype.pv2;
-        auto *pv3 = prototype.pv3;
-
-        auto* clVec1 = &run_->cellListMap[pv1];
-        auto* clVec2 = &run_->cellListMap[pv2];
-        auto* clVec3 = pv3 ? &run_->cellListMap[pv3] : nullptr;
-
-        CellList *cl1 = selectBestClist(*clVec1, rc, rcTolerance_);
-        CellList *cl2 = selectBestClist(*clVec2, rc, rcTolerance_);
-        CellList *cl3 = clVec3 ? selectBestClist(*clVec3, rc, rcTolerance_) : nullptr;
-
+        auto pv1 = prototype.pv1;
+        auto pv2 = prototype.pv2;
+        auto pv3 = prototype.pv3;
         auto inter = prototype.interaction;
+
+        auto& clVec1 = run_->cellListMap[pv1];
+        auto& clVec2 = run_->cellListMap[pv2];
+
+        CellList *cl1 = selectBestClist(clVec1, rc, rcTolerance_);
+        CellList *cl2 = selectBestClist(clVec2, rc, rcTolerance_);
+        CellList *cl3 = pv3 ? selectBestClist(run_->cellListMap[pv3], rc, rcTolerance_) : nullptr;
+
+        debug2("Selected cell list '%s' for interaction '%s'",
+               cl1->getName().c_str(), inter->getCName());
+
+        debug2("Selected cell list '%s' for interaction '%s'",
+               cl2->getName().c_str(), inter->getCName());
 
         inter->setPrerequisites(pv1, pv2, pv3, cl1, cl2, cl3);
 
@@ -789,6 +801,15 @@ std::vector<std::string> Simulation::_getDataToSendBack(const std::vector<std::s
     return {channels.begin(), channels.end()};
 }
 
+static std::vector<std::string> merge(std::vector<std::string> a,
+                                      std::vector<std::string> b)
+{
+    std::set<std::string> all;
+    all.insert(a.begin(), a.end());
+    all.insert(b.begin(), b.end());
+    return {all.begin(), all.end()};
+}
+
 void Simulation::_prepareEngines()
 {
     auto partRedistImp                  = std::make_unique<ParticleRedistributor>();
@@ -808,13 +829,12 @@ void Simulation::_prepareEngines()
 
         if (cellListVec.size() == 0) continue;
 
-        CellList *clInt = run_->interactionsIntermediate.getLargestCellList(pvPtr);
-        CellList *clOut = run_->interactionsFinal       .getLargestCellList(pvPtr);
+        auto extraInt = merge(run_->interactionsIntermediate.getOutputChannels(pvPtr),
+                              run_->interactionsFinal.getInputChannels(pvPtr));
+        auto extraFin  = run_->interactionsFinal.getOutputChannels(pvPtr);
 
-        auto extraInt = run_->interactionsIntermediate.getOutputChannels(pvPtr);
-        auto extraOut = run_->interactionsFinal       .getOutputChannels(pvPtr);
 
-        auto cl = cellListVec[0].get();
+        auto largestCellList = cellListVec[0].get();
 
         if (auto ov = dynamic_cast<ObjectVector*>(pvPtr))
         {
@@ -823,21 +843,37 @@ void Simulation::_prepareEngines()
             auto extraToExchange = _getExtraDataToExchange(ov);
             auto reverseExchange = _getDataToSendBack(extraInt, ov);
 
-            objHaloFinalImp->attach(ov, cl->rc, extraToExchange); // always active because of bounce back; TODO: check if bounce back is active
-            objHaloReverseFinalImp->attach(ov, extraOut);
+            real rc = largestCellList->rc;
+
+            if (_hasPairwiseSelfInteractions(ov))
+                rc += maxObjHalfLength_;
+
+            if (rc >= state_->domain.globalSize.x/2 ||
+                rc >= state_->domain.globalSize.y/2 ||
+                rc >= state_->domain.globalSize.z/2)
+            {
+                die("Invalid domain size: Expect at least %g along each dimension.", 2*rc);
+            }
+
+             // always active because of bounce back; TODO: check if bounce back is active
+            objHaloFinalImp->attach(ov, rc, extraToExchange);
+            objHaloReverseFinalImp->attach(ov, extraFin);
 
             objHaloIntermediateImp->attach(ov, extraInt);
             objHaloReverseIntermediateImp->attach(ov, reverseExchange);
         }
         else
         {
-            partRedistImp->attach(pvPtr, cl);
+            CellList *clInt = run_->interactionsIntermediate.getLargestCellList(pvPtr);
+            CellList *clFin = run_->interactionsFinal       .getLargestCellList(pvPtr);
+
+            partRedistImp->attach(pvPtr, largestCellList);
 
             if (clInt != nullptr)
                 partHaloIntermediateImp->attach(pvPtr, clInt, {});
 
-            if (clOut != nullptr)
-                partHaloFinalImp->attach(pvPtr, clOut, extraInt);
+            if (clFin != nullptr)
+                partHaloFinalImp->attach(pvPtr, clFin, extraInt);
         }
     }
 
@@ -846,13 +882,17 @@ void Simulation::_prepareEngines()
     // If we're on one node, use a singleNode engine
     // otherwise use MPI
     if (nranks3D_.x * nranks3D_.y * nranks3D_.z == 1)
+    {
         makeEngine = [this] (std::unique_ptr<Exchanger> exch) {
             return std::make_unique<SingleNodeExchangeEngine> (std::move(exch));
         };
+    }
     else
+    {
         makeEngine = [this] (std::unique_ptr<Exchanger> exch) {
             return std::make_unique<MPIExchangeEngine> (std::move(exch), cartComm_, gpuAwareMPI_);
         };
+    }
 
     run_->partRedistributor          = makeEngine(std::move(partRedistImp));
     run_->partHaloFinal              = makeEngine(std::move(partHaloFinalImp));
@@ -892,25 +932,29 @@ void Simulation::_createTasks()
     {
         scheduler.addTask(tasks.checkpoint, [this](__UNUSED cudaStream_t stream)
         {
-            if (checkpointInfo_.mechanism == CheckpointMechanism::Checkpoint)
-                this->checkpoint();
-            else
-                this->snapshot();
+            this->checkpoint();
         },
        checkpointInfo_.every);
     }
 
     for (auto& clVec : run_->cellListMap)
+    {
         for (auto& cl : clVec.second)
         {
             auto clPtr = cl.get();
             scheduler.addTask(tasks.cellLists, [clPtr] (cudaStream_t stream) { clPtr->build(stream); } );
         }
+    }
 
-    // Only particle forces, not object ones here
+    // Only particle forces, not object ones here,
+    // to allow bounce back momentum to be transfered to the next iteration.
     for (auto& pv : particleVectors_)
     {
         auto pvPtr = pv.get();
+
+        if (dynamic_cast<ObjectVector*>(pvPtr))
+            continue;
+
         scheduler.addTask(tasks.partClearIntermediate,
                          [this, pvPtr] (cudaStream_t stream)
         {
@@ -1056,7 +1100,7 @@ void Simulation::_createTasks()
             run_->interactionsFinal.clearOutput(ov, stream);
             lov->getMeshForces(stream)->clear(stream);
 
-            // force clear forces in case there is no interactions but bounce back
+            // clear forces in case there is no interactions but bounce back
             if (run_->interactionsFinal.empty())
                 lov->forces().clearDevice(stream);
 
@@ -1070,7 +1114,7 @@ void Simulation::_createTasks()
             run_->interactionsFinal.clearOutputLocalPV(ov, lov, stream);
             lov->getMeshForces(stream)->clear(stream);
 
-            // force clear forces in case there is no interactions but bounce back
+            // clear forces in case there is no interactions but bounce back
             if (run_->interactionsFinal.empty())
                 lov->forces().clearDevice(stream);
 
@@ -1274,8 +1318,6 @@ void Simulation::init()
     _prepareBouncers();
     _prepareWalls();
 
-    run_->interactionsIntermediate.checkCompatibleWith(run_->interactionsFinal);
-
     CUDA_Check( cudaDeviceSynchronize() );
 
     _preparePlugins();
@@ -1361,6 +1403,18 @@ void Simulation::_checkpointState()
     createCheckpointSymlink(cartComm_, checkpointInfo_.folder, "state", "txt", checkpointId_);
 }
 
+
+bool Simulation::_hasPairwiseSelfInteractions(ObjectVector *ov) const
+{
+    for (const InteractionPrototype& p : interactionPrototypes_)
+    {
+        if (ov == p.pv1 && ov == p.pv2 && !p.interaction->isSelfObjectInteraction())
+            return true;
+    }
+    return false;
+}
+
+
 static void advanceCheckpointId(int& checkpointId, CheckpointIdAdvanceMode mode)
 {
     if (mode == CheckpointIdAdvanceMode::PingPong)
@@ -1438,77 +1492,6 @@ void Simulation::checkpoint()
     notifyPostProcess(checkpointTag, checkpointId_);
 
     CUDA_Check( cudaDeviceSynchronize() );
-}
-
-void Simulation::snapshot()
-{
-    advanceCheckpointId(checkpointId_, checkpointInfo_.mode);
-    notifyPostProcess(checkpointTag, checkpointId_);
-    snapshot(createSnapshotPath(checkpointInfo_.folder, checkpointId_));
-}
-
-MIRHEO_MEMBER_VARS(Simulation::IntegratorPrototype, pv, integrator);
-MIRHEO_MEMBER_VARS(Simulation::InteractionPrototype, rc, pv1, pv2, pv3, interaction);
-MIRHEO_MEMBER_VARS(Simulation::WallPrototype, wall, pv, maximumPartTravel);
-MIRHEO_MEMBER_VARS(Simulation::CheckWallPrototype, wall, every);
-MIRHEO_MEMBER_VARS(Simulation::BouncerPrototype, bouncer, pv);
-MIRHEO_MEMBER_VARS(Simulation::BelongingCorrectionPrototype, checker, pvIn, pvOut, every);
-MIRHEO_MEMBER_VARS(Simulation::SplitterPrototype, checker, pvSrc, pvIn, pvOut);
-
-void Simulation::snapshot(const std::string& path)
-{
-    // Prepare context and the saver.
-    SaverContext context;
-    context.path = path;
-    context.groupComm = cartComm_;
-    Saver saver{&context};
-
-    // Create the snapshot folder before saving.
-    if (!createFoldersCollective(cartComm_, path))
-        die("Error creating snapshot folder \"%s\", aborting.", path.c_str());
-    MPI_Barrier(interComm_);
-
-    saver.registerObject<Simulation>(this, _saveSnapshot(saver, "Simulation"));
-    saver.registerObject<MirState>(state_, saver(*state_));
-
-    int rank;
-    MPI_Comm_rank(cartComm_, &rank);
-    if (rank == 0) {
-        std::string simJson = ConfigValue{std::move(saver).getConfig()}.toJSONString();
-        int size = (int)simJson.size();
-        MPI_Check( MPI_Send(&size, 1, MPI_INT, 0, snapshotTag, interComm_) );
-        MPI_Check( MPI_Send(simJson.c_str(), size, MPI_CHAR, 0, snapshotTag, interComm_) );
-    }
-
-    CUDA_Check( cudaDeviceSynchronize() );
-}
-
-ConfigObject Simulation::_saveSnapshot(Saver& saver, const std::string& typeName)
-{
-    ConfigObject config = MirObject::_saveSnapshot(saver, "Simulation", typeName);
-    config.emplace("checkpointId",        saver(checkpointId_));
-    config.emplace("checkpointInfo",      saver(checkpointInfo_));
-
-    config.emplace("particleVectors",     saver(particleVectors_));
-
-    config.emplace("bouncerMap",          saver(bouncerMap_));
-    config.emplace("integratorMap",       saver(integratorMap_));
-    config.emplace("interactionMap",      saver(interactionMap_));
-    config.emplace("wallMap",             saver(wallMap_));
-    config.emplace("belongingCheckerMap", saver(belongingCheckerMap_));
-
-    config.emplace("plugins",             saver(plugins));
-
-    config.emplace("integratorPrototypes",          saver(integratorPrototypes_));
-    config.emplace("interactionPrototypes",         saver(interactionPrototypes_));
-    config.emplace("wallPrototypes",                saver(wallPrototypes_));
-    config.emplace("checkWallPrototypes",           saver(checkWallPrototypes_));
-    config.emplace("bouncerPrototypes",             saver(bouncerPrototypes_));
-    config.emplace("belongingCorrectionPrototypes", saver(belongingCorrectionPrototypes_));
-    config.emplace("splitterPrototypes",            saver(splitterPrototypes_));
-
-    config.emplace("pvsIntegratorMap",    saver(pvsIntegratorMap_));
-    return config;
 }
 
 void Simulation::dumpDependencyGraphToGraphML(const std::string& fname, bool current) const

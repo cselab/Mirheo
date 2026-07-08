@@ -50,7 +50,7 @@ omega    = tuple( [x if np.abs(x) < 1e3 else mir.Plugins.PinObject.Unrestricted 
 dump_every=50
 
 u.registerPlugins( mir.Plugins.createPinObject('pin', pv_ell, dump_every, 'force/', velocity, omega) )
-u.registerPlugins( mir.Plugins.createDumpObjectStats("objStats", pv_ell, dump_every, "stats/") )
+u.registerPlugins( mir.Plugins.createDumpObjectStats("objStats", pv_ell, dump_every, filename="stats/object") )
 
 u.run(2010, dt=dt)
 

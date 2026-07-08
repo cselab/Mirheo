@@ -9,19 +9,19 @@
 #include "oscillate.h"
 #include "rbc_shardlow.h"
 #include "rigid_vv.h"
+#include "shear.h"
+#include "shear_pol_chain.h"
 #include "sub_step.h"
 #include "translate.h"
 #include "vv.h"
+#include "vv_pol_chain.h"
 
 #include <vector_types.h>
 
 #include <memory>
 
-namespace mirheo
-{
-
-namespace integrator_factory
-{
+namespace mirheo {
+namespace integrator_factory {
 
 inline std::shared_ptr<IntegratorMinimize>
 createMinimize(const MirState *state, const std::string& name, real maxDisplacement)
@@ -56,10 +56,29 @@ createVV_PeriodicPoiseuille(const MirState *state, const std::string& name, real
     return std::make_shared<IntegratorVV<ForcingTermPeriodicPoiseuille>> (state, name, forcing);
 }
 
+inline std::shared_ptr<IntegratorVVPolChain>
+createVVPolChain(const MirState *state, const std::string& name)
+{
+    return std::make_shared<IntegratorVVPolChain> (state, name);
+}
+
+
 inline std::shared_ptr<IntegratorConstOmega>
 createConstOmega(const MirState *state, const std::string& name, real3 center, real3 omega)
 {
     return std::make_shared<IntegratorConstOmega> (state, name, center, omega);
+}
+
+inline std::shared_ptr<IntegratorShear>
+createShear(const MirState *state, const std::string& name, std::array<real,9> shear, real3 origin)
+{
+    return std::make_shared<IntegratorShear> (state, name, shear, origin);
+}
+
+inline std::shared_ptr<IntegratorShearPolChain>
+createShearPolChain(const MirState *state, const std::string& name, std::array<real,9> shear, real3 origin)
+{
+    return std::make_shared<IntegratorShearPolChain> (state, name, shear, origin);
 }
 
 inline std::shared_ptr<IntegratorTranslate>
@@ -93,14 +112,6 @@ createSubStep(const MirState *state, const std::string& name, int substeps,
 {
     return std::make_shared<IntegratorSubStep> (state, name, substeps, fastForces);
 }
-
-/** \brief Integrator factory. Instantiate the correct integrator depending on the snapshot parameters.
-    \param [in] state The global state of the system.
-    \param [in] loader The \c Loader object. Provides load context and unserialization functions.
-    \param [in] config The integrator parameters.
- */
-std::shared_ptr<Integrator>
-loadIntegrator(const MirState *state, Loader& loader, const ConfigObject& config);
 
 } // namespace integrator_factory
 

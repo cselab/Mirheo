@@ -7,7 +7,6 @@
 #include <mirheo/core/pvs/particle_vector.h>
 #include <mirheo/core/pvs/views/pv.h>
 #include <mirheo/core/simulation.h>
-#include <mirheo/core/utils/config.h>
 #include <mirheo/core/utils/cuda_common.h>
 #include <mirheo/core/utils/kernel_launch.h>
 #include <mirheo/core/utils/mpi_types.h>
@@ -52,12 +51,10 @@ __global__ void totalMomentumEnergy(PVview view, ReductionType *momentum, Reduct
 }
 } // namespace stats_plugin_kernels
 
-SimulationStats::SimulationStats(const MirState *state, std::string name, int fetchEvery) :
+SimulationStats::SimulationStats(const MirState *state, std::string name, int every, std::vector<std::string> pvNames) :
     SimulationPlugin(state, name),
-    fetchEvery_(fetchEvery)
-{}
-SimulationStats::SimulationStats(const MirState *state, Loader&, const ConfigObject& config)
-    : SimulationStats(state, config["name"], config["fetchEvery"])
+    every_(every),
+    pvNames_(std::move(pvNames))
 {}
 
 SimulationStats::~SimulationStats() = default;
@@ -65,13 +62,24 @@ SimulationStats::~SimulationStats() = default;
 void SimulationStats::setup(Simulation *simulation, const MPI_Comm& comm, const MPI_Comm& interComm)
 {
     SimulationPlugin::setup(simulation, comm, interComm);
-    pvs_ = simulation->getParticleVectors();
+
+    if (pvNames_.empty())
+    {
+        pvs_ = simulation->getParticleVectors();
+    }
+    else
+    {
+        for (const auto& pvName : pvNames_)
+            pvs_.push_back(simulation->getPVbyNameOrDie(pvName));
+    }
+
     timer_.start();
 }
 
 void SimulationStats::afterIntegration(cudaStream_t stream)
 {
-    if (!isTimeEvery(getState(), fetchEvery_)) return;
+    if (!isTimeEvery(getState(), every_))
+        return;
 
     momentum_.clear(stream);
     energy_  .clear(stream);
@@ -102,26 +110,14 @@ void SimulationStats::serializeAndSend(__UNUSED cudaStream_t stream)
 {
     if (needToDump_)
     {
-        const real tm = timer_.elapsedAndReset() / (getState()->currentStep < fetchEvery_ ? 1.0_r : fetchEvery_);
+        const real tm = timer_.elapsedAndReset() / (getState()->currentStep < every_ ? 1.0_r : every_);
         _waitPrevSend();
         SimpleSerializer::serialize(sendBuffer_, tm, getState()->currentTime,
-                                    getState()->currentStep, getState()->units,
+                                    getState()->currentStep,
                                     nparticles_, momentum_, energy_, maxvel_);
         _send(sendBuffer_);
         needToDump_ = false;
     }
-}
-
-void SimulationStats::saveSnapshotAndRegister(Saver& saver)
-{
-    saver.registerObject<SimulationStats>(this, _saveSnapshot(saver, "SimulationStats"));
-}
-
-ConfigObject SimulationStats::_saveSnapshot(Saver& saver, const std::string& typeName)
-{
-    ConfigObject config = SimulationPlugin::_saveSnapshot(saver, typeName);
-    config.emplace("fetchEvery", saver(fetchEvery_));
-    return config;
 }
 
 PostprocessStats::PostprocessStats(std::string name, std::string filename) :
@@ -137,12 +133,9 @@ PostprocessStats::PostprocessStats(std::string name, std::string filename) :
             die("Could not open file '%s'", filename_.c_str());
 
         fprintf(fdump_.get(), "time,kBT,vx,vy,vz,maxv,num_particles,simulation_time_per_step\n");
+        fflush(fdump_.get());
     }
 }
-
-PostprocessStats::PostprocessStats(Loader&, const ConfigObject& config) :
-    PostprocessStats(config["name"].getString(), config["filename"].getString())
-{}
 
 void PostprocessStats::deserialize()
 {
@@ -150,13 +143,12 @@ void PostprocessStats::deserialize()
     MirState::StepType currentTimeStep;
     real realTime;
     stats_plugin::CountType nparticles, maxNparticles, minNparticles;
-    UnitConversion units;
 
     std::vector<stats_plugin::ReductionType> momentum, energy;
     std::vector<real> maxvel;
 
     SimpleSerializer::deserialize(data_, realTime, currentTime, currentTimeStep,
-                                  units, nparticles, momentum, energy, maxvel);
+                                  nparticles, momentum, energy, maxvel);
 
     MPI_Check( MPI_Reduce(&nparticles, &minNparticles, 1, getMPIIntType<stats_plugin::CountType>(), MPI_MIN, 0, comm_) );
     MPI_Check( MPI_Reduce(&nparticles, &maxNparticles, 1, getMPIIntType<stats_plugin::CountType>(), MPI_MAX, 0, comm_) );
@@ -182,12 +174,7 @@ void PostprocessStats::deserialize()
         printf("\tNumber of particles (total, min/proc, max/proc): %llu,  %llu,  %llu\n", nparticles, minNparticles, maxNparticles);
         printf("\tAverage momentum: [%e %e %e]\n", momentum[0], momentum[1], momentum[2]);
         printf("\tMax velocity magnitude: %f\n", maxvel[0]);
-        if (units.isSet()) {
-            real kB = units.joulesToMirheo(1.380649e-23_r);
-            printf("\tTemperature: %.4f (%.2f K)\n\n", kBT, kBT / kB);
-        } else {
-            printf("\tTemperature: %.4f\n\n", kBT);
-        }
+        printf("\tTemperature: %.4f\n\n", kBT);
 
 
         if (fdump_.get())
@@ -200,16 +187,46 @@ void PostprocessStats::deserialize()
     }
 }
 
-void PostprocessStats::saveSnapshotAndRegister(Saver& saver)
+void PostprocessStats::checkpoint(MPI_Comm comm, const std::string& path, int checkpointId)
 {
-    saver.registerObject<PostprocessStats>(this, _saveSnapshot(saver, "PostprocessStats"));
+    if (filename_ == "")
+        return;
+
+    int rank {0};
+    MPI_Check( MPI_Comm_rank(comm, &rank) );
+
+    const auto checkpointFilename = createCheckpointNameWithId(path, "plugin.post." + getName(), "csv", checkpointId);
+
+    // copy current file
+    if (rank == 0)
+        copyFile(filename_, checkpointFilename);
+
+    MPI_Check( MPI_Barrier(comm) );
+
+    createCheckpointSymlink(comm, path, "plugin.post." + getName(), "csv", checkpointId);
 }
 
-ConfigObject PostprocessStats::_saveSnapshot(Saver& saver, const std::string &typeName)
+void PostprocessStats::restart(MPI_Comm comm, const std::string& path)
 {
-    ConfigObject config = PostprocessPlugin::_saveSnapshot(saver, typeName);
-    config.emplace("filename", saver(filename_));
-    return config;
+    if (filename_ == "")
+        return;
+
+    int rank {0};
+    MPI_Check( MPI_Comm_rank(comm, &rank) );
+
+    if (fdump_.get())
+        fdump_.close();
+
+    const auto checkpointFilename = createCheckpointName(path, "plugin.post." + getName(), "csv");
+
+    if (rank == 0)
+        copyFile(checkpointFilename, filename_);
+
+    MPI_Check( MPI_Barrier(comm) );
+
+    const auto status = fdump_.open(filename_, "a");
+    if (status != FileWrapper::Status::Success)
+        die("Could not open file '%s'", filename_.c_str());
 }
 
 } // namespace mirheo

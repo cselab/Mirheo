@@ -15,7 +15,6 @@
 namespace mirheo
 {
 
-class Saver;
 class MirState;
 class ParticleVector;
 class ObjectVector;
@@ -48,10 +47,11 @@ public:
         \param interComm An inter communicator to communicate with the \c Postprocess ranks.
         \param [in,out] state The global state of the simulation. Does not pass ownership.
         \param checkpointInfo Configuration of checkpoint
+        \param maxObjHalfLength Half of the maximum length of all objects.
         \param gpuAwareMPI Performance parameter that controls if communication can be performed through RDMA.
      */
     Simulation(const MPI_Comm &cartComm, const MPI_Comm &interComm, MirState *state,
-               CheckpointInfo checkpointInfo, bool gpuAwareMPI = false);
+               CheckpointInfo checkpointInfo, real maxObjHalfLength, bool gpuAwareMPI = false);
 
     ~Simulation();
 
@@ -61,17 +61,6 @@ public:
     /// Dump the whole simulation state to the checkpoint folder and advance the checkpoint ID.
     void checkpoint();
 
-    /** \brief Dump the whole simulation state and setup, and advance the checkpoint ID.
-
-        Target path is automatically determined from the checkpoint folder and ID.
-        Wrapper for `snaphot(const std::string&)`.
-      */
-    void snapshot();
-
-    /** \brief Dump the whole simulation setup and data at the given path.
-        \param path Target folder.
-      */
-    void snapshot(const std::string& path);
 
     /** \brief register a ParticleVector and initialize it with the gien InitialConditions.
         \param pv The ParticleVector to register
@@ -240,13 +229,6 @@ public:
      */
     void dumpDependencyGraphToGraphML(const std::string& fname, bool current) const;
 
-protected:
-    /** \brief Implementation of the snapshot saving. Reusable by potential derived classes.
-        \param [in,out] saver The \c Saver object. Provides save context and serialization functions.
-        \param [in] typeName The name of the type being saved.
-      */
-    ConfigObject _saveSnapshot(Saver& saver, const std::string& typeName);
-
 private:
     std::vector<std::string> _getExtraDataToExchange(ObjectVector *ov) const;
     std::vector<std::string> _getDataToSendBack(const std::vector<std::string>& extraOut, ObjectVector *ov) const;
@@ -268,6 +250,11 @@ private:
 
     void _restartState(const std::string& folder);
     void _checkpointState();
+
+    /**
+       \return true if the given ObjectVector interacts with itself through a pairwise interaction.
+     */
+    bool _hasPairwiseSelfInteractions(ObjectVector *ov) const;
 
 private:
     template <class T>
@@ -319,7 +306,9 @@ private:
     };
 
 private:
-    friend Saver;
+
+    /// Add or import a setting regarding object belonging checker.
+    void _applyObjectBelongingChecker(BelongingCorrectionPrototype, SplitterPrototype);
 
     const int3 nranks3D_;
     const int3 rank3D_;
@@ -340,6 +329,7 @@ private:
 
     const bool gpuAwareMPI_;
 
+    real maxObjHalfLength_;
 
     std::map<std::string, int> pvIdMap_;
     std::vector< std::shared_ptr<ParticleVector> > particleVectors_;

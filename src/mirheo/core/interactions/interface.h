@@ -7,6 +7,7 @@
 #include <functional>
 #include <memory>
 #include <mpi.h>
+#include <optional>
 #include <vector>
 
 namespace mirheo
@@ -28,7 +29,7 @@ public:
 
         If a channel is inactive, the Interaction object can
         tell the simulation via this function object that the
-        conserned channel does not need to be exchanged.
+        concerned channel does not need to be exchanged.
 
         Typically, this can store the simulation state and be
         active only at given time intervals. The most common
@@ -36,7 +37,7 @@ public:
      */
     using ActivePredicate = std::function<bool()>;
 
-    /// \brief A simple structure used to describe which  channels are active.
+    /// \brief A simple structure used to describe which channels are active.
     struct InteractionChannel
     {
         std::string name; ///< the name of the channel
@@ -52,27 +53,17 @@ public:
      */
     Interaction(const MirState *state, std::string name);
 
-    /** \brief Constructs a \c Interaction object from a snapshot.
-        \param [in] state The global state of the system
-        \param [in] loader The \c Loader object. Provides load context and unserialization functions.
-        \param [in] config The parameters of the interaction.
-     */
-    Interaction(const MirState *state, Loader& loader, const ConfigObject& config);
-
     virtual ~Interaction();
 
     /** \brief Add needed properties to the given ParticleVectors for future interactions.
         \param [in] pv1 One ParticleVector of the interaction
-        \param [in] pv2 The other ParticleVector of the interaction
-        \param [in] pv3 The third ParticleVector of the interaction
+        \param [in] pv2 The other ParticleVector of that will interact
         \param [in] cl1 CellList of pv1
         \param [in] cl2 CellList of pv2
-        \param [in] cl3 CellList of pv3
 
         Must be called before any other method of this class.
      */
-    virtual void setPrerequisites(ParticleVector *pv1, ParticleVector *pv2, ParticleVector *pv3,
-                                  CellList *cl1, CellList *cl2, CellList *cl3);
+    virtual void setPrerequisites(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2);
 
     /** \brief Compute interactions between bulk particles.
         \param [in,out] pv1 first interacting ParticleVector
@@ -85,25 +76,68 @@ public:
         The result of the interaction is **added** to the corresponding channel of the ParticleVector.
         The order of pv1 and pv2 may change the performance of the interactions.
      */
-    virtual void local(ParticleVector *pv1, ParticleVector *pv2, ParticleVector *pv3,
-                       CellList *cl1, CellList *cl2, CellList *cl3, cudaStream_t stream) = 0;
+    virtual void local(ParticleVector *pv1, ParticleVector *pv2,
+                       CellList *cl1, CellList *cl2, cudaStream_t stream) = 0;
 
     /** \brief Compute interactions between bulk particles and halo particles.
         \param [in,out] pv1 first interacting ParticleVector
         \param [in,out] pv2 second interacting ParticleVector. If it is the same as
-                        the pv1, self interactions will be computed.
-        \param [in,out] pv3 third interacting ParticleVector.
+               the pv1, self interactions will be computed.
         \param [in] cl1 cell-list built for the appropriate cut-off radius for pv1
         \param [in] cl2 cell-list built for the appropriate cut-off radius for pv2
-        \param [in] cl3 cell-list built for the appropriate cut-off radius for pv3
         \param [in] stream Execution stream
 
         The result of the interaction is **added** to the corresponding channel of the ParticleVector.
         In general, the following interactions will be computed:
         pv1->halo() \<--\> pv2->local() and pv2->halo() \<--\> pv1->local().
      */
+    virtual void halo(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1,
+                      CellList *cl2, cudaStream_t stream) = 0;
+
+    /** \brief Add needed properties to the given ParticleVectors for future interactions,
+               three-body variant.
+        \param [in] pv1 One ParticleVector of the interaction
+        \param [in] pv2 The second ParticleVector of the interaction
+        \param [in] pv3 The third ParticleVector of the interaction (nullptr for two-body interactions)
+        \param [in] cl1 CellList of pv1
+        \param [in] cl2 CellList of pv2
+        \param [in] cl3 CellList of pv3 (nullptr for two-body interactions)
+
+        The default implementation ignores \p pv3 and \p cl3 and forwards to the
+        two-body setPrerequisites(). Triplewise interactions override this variant.
+     */
+    virtual void setPrerequisites(ParticleVector *pv1, ParticleVector *pv2, ParticleVector *pv3,
+                                  CellList *cl1, CellList *cl2, CellList *cl3);
+
+    /** \brief Compute interactions between bulk particles, three-body variant.
+        \param [in,out] pv1 first interacting ParticleVector
+        \param [in,out] pv2 second interacting ParticleVector
+        \param [in,out] pv3 third interacting ParticleVector (nullptr for two-body interactions)
+        \param [in] cl1 cell-list of pv1
+        \param [in] cl2 cell-list of pv2
+        \param [in] cl3 cell-list of pv3 (nullptr for two-body interactions)
+        \param [in] stream Execution stream
+
+        The default implementation ignores \p pv3 and \p cl3 and forwards to the
+        two-body local(). Triplewise interactions override this variant.
+     */
+    virtual void local(ParticleVector *pv1, ParticleVector *pv2, ParticleVector *pv3,
+                       CellList *cl1, CellList *cl2, CellList *cl3, cudaStream_t stream);
+
+    /** \brief Compute interactions with halo particles, three-body variant.
+        \param [in,out] pv1 first interacting ParticleVector
+        \param [in,out] pv2 second interacting ParticleVector
+        \param [in,out] pv3 third interacting ParticleVector (nullptr for two-body interactions)
+        \param [in] cl1 cell-list of pv1
+        \param [in] cl2 cell-list of pv2
+        \param [in] cl3 cell-list of pv3 (nullptr for two-body interactions)
+        \param [in] stream Execution stream
+
+        The default implementation ignores \p pv3 and \p cl3 and forwards to the
+        two-body halo(). Triplewise interactions override this variant.
+     */
     virtual void halo(ParticleVector *pv1, ParticleVector *pv2, ParticleVector *pv3,
-                      CellList *cl1, CellList *cl2, CellList *cl3, cudaStream_t stream) = 0;
+                      CellList *cl1, CellList *cl2, CellList *cl3, cudaStream_t stream);
 
 
     /** \return boolean describing if the interaction is an internal interaction.
@@ -114,27 +148,23 @@ public:
      */
     virtual bool isSelfObjectInteraction() const;
 
-    /// returns the Stage corresponding of this interaction.
+    /// returns the Stage corresponding to this interaction.
     virtual Stage getStage() const {return Stage::Final;}
 
     /** Returns which channels are required as input.
-        We consider that positions and velocities are always available;
+        Positions and velocities are always required and are not listed here;
         Only other channels must be specified here.
      */
     virtual std::vector<InteractionChannel> getInputChannels() const;
 
-    /// Returns which channels are output by the interactions.
+    /// Returns which channels are those output by the interactions.
     virtual std::vector<InteractionChannel> getOutputChannels() const;
 
-    /// \return the cut-off radius of the interaction
-    virtual real getCutoffRadius() const;
+    /// \return the cut-off radius of the interaction; std::nullopt if there is no cutoff.
+    virtual std::optional<real> getCutoffRadius() const;
 
     /// a predicate that always returns true.
     static const ActivePredicate alwaysActive;
-
-protected:
-    /// Base snapshot function for interactions, sets the category to "Interaction".
-    ConfigObject _saveSnapshot(Saver& saver, const std::string &typeName);
 };
 
 } // namespace mirheo

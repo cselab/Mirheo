@@ -2,6 +2,10 @@
 #include "factory.h"
 
 #include "add_force.h"
+#include "add_force_field.h"
+#include "add_potential_force.h"
+#include "add_reverse_poiseuille_force.h"
+#include "add_sinusoidal_force.h"
 #include "add_torque.h"
 #include "anchor_particle.h"
 #include "average_flow.h"
@@ -9,21 +13,25 @@
 #include "berendsen_thermostat.h"
 #include "channel_dumper.h"
 #include "copy_pv.h"
-#include "outlet.h"
 #include "density_control.h"
 #include "displacement.h"
 #include "dump_mesh.h"
 #include "dump_obj_stats.h"
 #include "dump_particles.h"
 #include "dump_particles_with_mesh.h"
+#include "dump_polylines.h"
 #include "dump_xyz.h"
 #include "exchange_pvs_flux_plane.h"
+#include "exp_moving_average.h"
+#include "external_magnetic_torque.h"
 #include "force_saver.h"
+#include "four_roll_mill.h"
 #include "impose_profile.h"
 #include "impose_velocity.h"
-#include "magnetic_orientation.h"
+#include "magnetic_dipole_interactions.h"
 #include "membrane_extra_force.h"
 #include "msd.h"
+#include "outlet.h"
 #include "particle_channel_averager.h"
 #include "particle_channel_saver.h"
 #include "particle_checker.h"
@@ -31,6 +39,9 @@
 #include "pin_object.h"
 #include "pin_rod_extremity.h"
 #include "rdf.h"
+#include "rmacf.h"
+#include "shear_field.h"
+#include "sinusoidal_field.h"
 #include "stats.h"
 #include "stress_tensor.h"
 #include "temperaturize.h"
@@ -41,10 +52,8 @@
 #include "wall_force_collector.h"
 #include "wall_repulsion.h"
 
-namespace mirheo
-{
-namespace plugin_factory
-{
+namespace mirheo {
+namespace plugin_factory {
 
 static std::vector<std::string> extractPVNames(const std::vector<ParticleVector*>& pvs)
 {
@@ -55,11 +64,74 @@ static std::vector<std::string> extractPVNames(const std::vector<ParticleVector*
     return pvNames;
 }
 
+PairPlugin createAddFourRollMillForcePlugin(bool computeTask, const MirState *state,
+                                            std::string name, ParticleVector *pv, real intensity)
+{
+    auto simPl = computeTask ? std::make_shared<AddFourRollMillForcePlugin> (state, name, pv->getName(), intensity) : nullptr;
+    return { simPl, nullptr };
+}
+
 PairPlugin createAddForcePlugin(bool computeTask, const MirState *state, std::string name, ParticleVector *pv, real3 force)
 {
     auto simPl = computeTask ? std::make_shared<AddForcePlugin> (state, name, pv->getName(), force) : nullptr;
     return { simPl, nullptr };
 }
+
+PairPlugin createAddForceFieldPlugin(bool computeTask, const MirState *state, std::string name,
+                                     ParticleVector *pv, std::function<real3(real3)> forceField, real3 gridSpacing)
+{
+    auto simPl = computeTask
+        ? std::make_shared<AddForceFieldPlugin> (state, name, pv->getName(), std::move(forceField), gridSpacing)
+        : nullptr;
+    return { simPl, nullptr };
+}
+
+PairPlugin createAddForceFieldPlugin(bool computeTask, const MirState *state, std::string name,
+                                     ParticleVector *pv, std::string forceFieldFilename, real3 gridSpacing)
+{
+    auto simPl = computeTask
+        ? std::make_shared<AddForceFieldPlugin> (state, name, pv->getName(), std::move(forceFieldFilename), gridSpacing)
+        : nullptr;
+    return { simPl, nullptr };
+}
+
+PairPlugin createAddPotentialForcePlugin(bool computeTask, const MirState *state, std::string name,
+                                         ParticleVector *pv, std::function<real(real3)> potentialField, real3 gridSpacing)
+{
+    auto simPl = computeTask
+        ? std::make_shared<AddPotentialForcePlugin> (state, name, pv->getName(), std::move(potentialField), gridSpacing)
+        : nullptr;
+    return { simPl, nullptr };
+}
+
+PairPlugin createAddPotentialForcePlugin(bool computeTask, const MirState *state, std::string name,
+                                         ParticleVector *pv, std::string potentialFieldFilename, real3 gridSpacing)
+{
+    auto simPl = computeTask
+        ? std::make_shared<AddPotentialForcePlugin> (state, name, pv->getName(), std::move(potentialFieldFilename), gridSpacing)
+        : nullptr;
+    return { simPl, nullptr };
+}
+
+
+PairPlugin createAddReversePoiseuilleForcePlugin(bool computeTask, const MirState *state, std::string name, ParticleVector *pv,
+                                                 real3 force, char flipDirection)
+{
+    auto simPl = computeTask
+        ? std::make_shared<AddReversePoiseuilleForcePlugin> (state, name, pv->getName(), force, flipDirection)
+        : nullptr;
+    return { simPl, nullptr };
+}
+
+PairPlugin createAddSinusoidalForcePlugin(bool computeTask, const MirState *state, std::string name, ParticleVector *pv,
+                                          real magnitude, int waveNumber)
+{
+    auto simPl = computeTask
+        ? std::make_shared<AddSinusoidalForcePlugin> (state, name, pv->getName(), magnitude, waveNumber)
+        : nullptr;
+    return { simPl, nullptr };
+}
+
 
 PairPlugin createAddTorquePlugin(bool computeTask, const MirState *state, std::string name, ParticleVector *pv, real3 torque)
 {
@@ -87,17 +159,8 @@ PairPlugin createAnchorParticlesPlugin(bool computeTask, const MirState *state, 
 
 PairPlugin createBerendsenThermostatPlugin(
         bool computeTask, const MirState *state, std::string name,
-        const std::vector<ParticleVector *> &pvs, real tau, real T, real kBT, bool increaseIfLower)
+        const std::vector<ParticleVector *> &pvs, real tau, real kBT, bool increaseIfLower)
 {
-    if (kBT == 0 && T == 0)
-        throw std::invalid_argument("At least one of `kBT` and `T` must be set.");
-    if (kBT != 0 && T != 0)
-        throw std::invalid_argument("Cannot set both `kBT` and `T`.");
-    if (computeTask && T != 0) {
-        if (!state->units.isSet())
-            throw std::invalid_argument("Cannot use `T` without unit conversion factors.");
-        kBT = T * state->units.joulesToMirheo(1.380649e-23_r); // kB
-    }
     return {
         computeTask ? std::make_shared<BerendsenThermostatPlugin>(
                 state, name, extractPVNames(pvs), kBT, tau, increaseIfLower) : nullptr,
@@ -204,14 +267,28 @@ PairPlugin createDumpParticlesPlugin(bool computeTask, const MirState *state, st
     return { simPl, postPl };
 }
 
-PairPlugin createDumpParticlesWithMeshPlugin(bool computeTask, const MirState *state, std::string name, ObjectVector *ov, int dumpEvery,
+PairPlugin createDumpParticlesWithMeshPlugin(bool computeTask, const MirState *state, std::string name,
+                                             ObjectVector *ov, int dumpEvery,
                                              const std::vector<std::string>& channelNames, std::string path)
 {
-    auto simPl  = computeTask ? std::make_shared<ParticleWithMeshSenderPlugin> (state, name, ov->getName(), dumpEvery, channelNames) : nullptr;
+    auto simPl  = computeTask ? std::make_shared<ParticleWithMeshSenderPlugin> (state, name, ov->getName(),
+                                                                                dumpEvery, channelNames) : nullptr;
     auto postPl = computeTask ? nullptr : std::make_shared<ParticleWithMeshDumperPlugin> (name, path);
 
     return { simPl, postPl };
 }
+
+PairPlugin createDumpParticlesWithPolylinesPlugin(bool computeTask, const MirState *state, std::string name,
+                                                  ChainVector *cv, int dumpEvery,
+                                                  const std::vector<std::string>& channelNames, std::string path)
+{
+    auto simPl  = computeTask ? std::make_shared<ParticleWithPolylinesSenderPlugin> (state, name, cv->getName(),
+                                                                                     dumpEvery, channelNames) : nullptr;
+    auto postPl = computeTask ? nullptr : std::make_shared<ParticleWithPolylinesDumperPlugin> (name, path);
+
+    return { simPl, postPl };
+}
+
 
 PairPlugin createDumpXYZPlugin(bool computeTask, const MirState *state, std::string name, ParticleVector* pv, int dumpEvery, std::string path)
 {
@@ -221,10 +298,10 @@ PairPlugin createDumpXYZPlugin(bool computeTask, const MirState *state, std::str
     return { simPl, postPl };
 }
 
-PairPlugin createDumpObjStats(bool computeTask, const MirState *state, std::string name, ObjectVector* ov, int dumpEvery, std::string path)
+PairPlugin createDumpObjStats(bool computeTask, const MirState *state, std::string name, ObjectVector *ov, int dumpEvery, std::string filename)
 {
     auto simPl  = computeTask ? std::make_shared<ObjStatsPlugin> (state, name, ov->getName(), dumpEvery) : nullptr;
-    auto postPl = computeTask ? nullptr : std::make_shared<ObjStatsDumper> (name, path);
+    auto postPl = computeTask ? nullptr : std::make_shared<ObjStatsDumper> (name, filename);
 
     return { simPl, postPl };
 }
@@ -233,6 +310,26 @@ PairPlugin createExchangePVSFluxPlanePlugin(bool computeTask, const MirState *st
 {
     auto simPl = computeTask ?
         std::make_shared<ExchangePVSFluxPlanePlugin> (state, name, pv1->getName(), pv2->getName(), plane) : nullptr;
+
+    return { simPl, nullptr };
+}
+
+PairPlugin createExpMovingAveragePlugin(bool computeTask, const MirState *state, std::string name, ParticleVector *pv,
+                                        real alpha, std::string srcChannelName, std::string emaChannelName)
+{
+    auto simPl = computeTask ?
+        std::make_shared<ExponentialMovingAveragePlugin> (state, name, pv->getName(), alpha, srcChannelName, emaChannelName) : nullptr;
+
+    return { simPl, nullptr };
+}
+
+PairPlugin createExternalMagneticTorquePlugin(bool computeTask, const MirState *state, std::string name,
+                                              RigidObjectVector *rov, real3 moment,
+                                              std::function<real3(real)> magneticFunction)
+{
+    auto simPl = computeTask ?
+        std::make_shared<ExternalMagneticTorquePlugin>(state, name, rov->getName(), moment, magneticFunction)
+        : nullptr;
 
     return { simPl, nullptr };
 }
@@ -264,11 +361,11 @@ PairPlugin createImposeVelocityPlugin(bool computeTask,  const MirState *state, 
     return { simPl, nullptr };
 }
 
-PairPlugin createMagneticOrientationPlugin(bool computeTask, const MirState *state, std::string name, RigidObjectVector *rov, real3 moment,
-                                           std::function<real3(real)> magneticFunction)
+PairPlugin createMagneticDipoleInteractionsPlugin(bool computeTask, const MirState *state, std::string name,
+                                                  RigidObjectVector *rov, real3 moment, real mu0, bool periodic)
 {
     auto simPl = computeTask ?
-        std::make_shared<MagneticOrientationPlugin>(state, name, rov->getName(), moment, magneticFunction)
+        std::make_shared<MagneticDipoleInteractionsPlugin>(state, name, rov->getName(), moment, mu0, periodic)
         : nullptr;
 
     return { simPl, nullptr };
@@ -377,9 +474,39 @@ PairPlugin createRdfPlugin(bool computeTask, const MirState *state, std::string 
     return { simPl, postPl };
 }
 
-PairPlugin createStatsPlugin(bool computeTask, const MirState *state, std::string name, std::string filename, int every)
+PairPlugin createRmacfPlugin(bool computeTask, const MirState *state, std::string name, ChainVector *cv,
+                             MirState::TimeType startTime, MirState::TimeType endTime, int dumpEvery, std::string path)
 {
-    auto simPl  = computeTask ? std::make_shared<SimulationStats> (state, name, every) : nullptr;
+    auto simPl  = computeTask ? std::make_shared<RmacfPlugin> (state, name, cv->getName(), startTime, endTime, dumpEvery)
+        : nullptr;
+    auto postPl = computeTask ? nullptr : std::make_shared<RmacfDumper> (name, path);
+    return { simPl, postPl };
+}
+
+PairPlugin createShearFieldPlugin(bool computeTask, const MirState *state, std::string name, ParticleVector *pv,
+                                  std::array<real,9> shear, real3 origin, std::string sfChannelName)
+{
+    auto simPl = computeTask
+        ? std::make_shared<ShearFieldPlugin> (state, name, pv->getName(), shear, origin, sfChannelName)
+        : nullptr;
+
+    return { simPl, nullptr };
+}
+
+PairPlugin createSinusoidalFieldPlugin(bool computeTask, const MirState *state, std::string name, ParticleVector *pv,
+                                       real magnitude, int waveNumber, std::string sfChannelName)
+{
+    auto simPl = computeTask
+        ? std::make_shared<SinusoidalFieldPlugin> (state, name, pv->getName(), magnitude, waveNumber, sfChannelName)
+        : nullptr;
+
+    return { simPl, nullptr };
+}
+
+
+PairPlugin createStatsPlugin(bool computeTask, const MirState *state, std::string name, int every, const std::vector<ParticleVector*>& pvs, std::string filename)
+{
+    auto simPl  = computeTask ? std::make_shared<SimulationStats> (state, name, every, extractPVNames(pvs)) : nullptr;
     auto postPl = computeTask ? nullptr : std::make_shared<PostprocessStats> (name, filename);
 
     return { simPl, postPl };
@@ -440,7 +567,7 @@ PairPlugin createWallRepulsionPlugin(bool computeTask, const MirState *state, st
 }
 
 PairPlugin createWallForceCollectorPlugin(bool computeTask, const MirState *state, std::string name, Wall *wall, ParticleVector* pvFrozen,
-                                          int sampleEvery, int dumpEvery, std::string filename)
+                                          int sampleEvery, int dumpEvery, std::string filename, bool detailedDump)
 {
     auto simPl = computeTask ?
         std::make_shared<WallForceCollectorPlugin> (state, name, wall->getName(), pvFrozen->getName(), sampleEvery, dumpEvery) :
@@ -448,63 +575,11 @@ PairPlugin createWallForceCollectorPlugin(bool computeTask, const MirState *stat
 
     auto postPl = computeTask ?
         nullptr :
-        std::make_shared<WallForceDumperPlugin> (name, filename);
+        std::make_shared<WallForceDumperPlugin> (name, filename, detailedDump);
 
     return { simPl, postPl };
 }
 
-PluginFactoryContainer::OptionalPluginPair loadPlugins(
-        bool computeTask, const MirState *state, Loader& loader,
-        const ConfigObject *sim, const ConfigObject* post)
-{
-    std::string simType  = sim  ? sim->at("__type").getString()  : std::string();
-    std::string postType = post ? post->at("__type").getString() : std::string();
-
-    // Create a pair of sim and post plugins if the type names match.
-#define MIR_LOAD_PLUGIN_PAIR(A, B) do {                                           \
-        if (simType == #A && postType == #B) {                                    \
-            if (computeTask)                                                      \
-                return {true, std::make_shared<A>(state, loader, *sim), nullptr}; \
-            else                                                                  \
-                return {true, nullptr, std::make_shared<B>(loader, *post)};       \
-        }                                                                         \
-    } while (0)
-
-    // Create a simulation-only plugin, if the type names match.
-#define MIR_LOAD_SIM_PLUGIN(A) do {                                            \
-        if (simType == #A && postType.empty()) {                               \
-            return {true,                                                      \
-                    computeTask ? std::make_shared<A>(state, loader, *sim)     \
-                                : nullptr,                                     \
-                    nullptr};                                                  \
-        }                                                                      \
-    } while (0)
-
-    // List all supported plugins.
-    MIR_LOAD_PLUGIN_PAIR(MeshPlugin, MeshDumper);
-    MIR_LOAD_PLUGIN_PAIR(ParticleSenderPlugin, ParticleDumperPlugin);
-    MIR_LOAD_PLUGIN_PAIR(SimulationStats, PostprocessStats);
-    MIR_LOAD_SIM_PLUGIN(BerendsenThermostatPlugin);
-    MIR_LOAD_SIM_PLUGIN(ForceSaverPlugin);
-    MIR_LOAD_SIM_PLUGIN(MembraneExtraForcePlugin);
-    MIR_LOAD_SIM_PLUGIN(WallRepulsionPlugin);
-
-#undef MIR_LOAD_SIM_PLUGIN
-#undef MIR_LOAD_PLUGIN_PAIR
-
-    return {false, nullptr, nullptr};
-}
-
-static bool pluginsRegistered_ = false;
-static PluginRegistrant registrant_;
-
-PluginRegistrant::PluginRegistrant()
-{
-    if (!pluginsRegistered_) {
-        PluginFactoryContainer::get().registerPluginFactory(loadPlugins);
-        pluginsRegistered_ = true;
-    }
-}
 
 } // namespace plugin_factory
 } // namespace mirheo

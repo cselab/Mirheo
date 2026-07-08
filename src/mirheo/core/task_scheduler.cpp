@@ -50,10 +50,10 @@ TaskScheduler::TaskID TaskScheduler::createTask(const std::string& label)
     return id;
 }
 
-TaskScheduler::TaskID TaskScheduler::getTaskId(const std::string& label)
+TaskScheduler::TaskID TaskScheduler::getTaskId(const std::string& label) const
 {
-    if (label2taskId_.find(label) != label2taskId_.end())
-        return label2taskId_[label];
+    if (auto it = label2taskId_.find(label); it != label2taskId_.end())
+        return it->second;
     else
         return invalidTaskId;
 }

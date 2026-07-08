@@ -1,5 +1,5 @@
 // Copyright 2020 ETH Zurich. All Rights Reserved.
-#include "bindings.h"
+#include "utils.h"
 
 #include <mirheo/core/utils/compile_options.h>
 

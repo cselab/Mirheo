@@ -5,19 +5,19 @@
 #include <mirheo/core/logger.h>
 #include <mirheo/core/types/type_list.h>
 #include <mirheo/core/types/variant_type_device.h>
-#include <mirheo/core/utils/variant.h>
 
 #include <cuda_runtime.h>
 #include <map>
 #include <memory>
 #include <string>
+#include <variant>
 #include <vector>
 
 namespace mirheo
 {
 
 /// a variant that points to a PinnedBuffer of one of the supported types (see <mirheo/core/types/type_list.h>)
-using VarPinnedBufferPtr = mpark::variant<
+using VarPinnedBufferPtr = std::variant<
 #define MAKE_WRAPPER(a) PinnedBuffer<a>*
     MIRHEO_TYPE_TABLE_COMMA(MAKE_WRAPPER)
 #undef MAKE_WRAPPER
@@ -108,24 +108,27 @@ public:
 
         using HeldType = PinnedBuffer<T>;
 
-        if (checkChannelExists(name))
+        const auto pair = channelMap_.emplace(name, ChannelDescription{});
+        ChannelDescription * const desc = &pair.first->second;
+        const bool exists = !pair.second;
+        if (exists)
         {
-            if (!mpark::holds_alternative< HeldType* >(channelMap_[name].varDataPtr))
-                die("Tried to create channel with existing name '%s' but different type",
-                    name.c_str());
+            if (!std::holds_alternative< HeldType* >(desc->varDataPtr))
+                die("Tried to create channel '%s' of type '%s', but it "
+                    "already has a different type (index %zu)",
+                    name.c_str(), typeid(T).name(), desc->varDataPtr.index());
 
             debug("Channel '%s' has already been created", name.c_str());
             return;
         }
 
-        info("Creating new channel '%s'", name.c_str());
+        info("Creating new channel '%s' of type '%s'", name.c_str(), typeid(T).name());
 
-        auto &desc = channelMap_[name];
         auto ptr = std::make_unique<HeldType>(size);
-        desc.varDataPtr = ptr.get();
-        desc.container  = std::move(ptr);
+        desc->varDataPtr = ptr.get();
+        desc->container  = std::move(ptr);
 
-        sortedChannels_.push_back({name, &channelMap_[name]});
+        sortedChannels_.push_back({name, desc});
         _sortChannels();
     }
 
@@ -180,10 +183,10 @@ public:
 
         auto& desc = getChannelDescOrDie(name);
 
-        if (!mpark::holds_alternative< HeldType >(desc.varDataPtr))
+        if (!std::holds_alternative< HeldType >(desc.varDataPtr))
             die("Channel '%s' is holding a different type than the required one", name.c_str());
 
-        return mpark::get<HeldType>(desc.varDataPtr);
+        return std::get<HeldType>(desc.varDataPtr);
     }
 
     /** \brief Get device buffer pointer regardless of its type
@@ -208,6 +211,12 @@ public:
 
     /// Resize all the channels without preserving the data
     void resize_anew(int n);
+
+    /// Get channel from its name or nullptr if it is not found
+    /// \{
+    ChannelDescription *getChannelDesc(const std::string& name);
+    const ChannelDescription *getChannelDesc(const std::string& name) const;
+    /// \}
 
     /// Get channel from its name or die if it is not found
     /// \{

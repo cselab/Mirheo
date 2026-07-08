@@ -20,13 +20,8 @@ namespace XDMF
     \param filename Base file name (without extension); two files will be created: xmf and hdf5
     \param grid The geometry description of the data. See \c Grid.
     \param channels A list of channel descriptions and associated data to dump
-    \param time A time stamp, useful when dumping sequences of files
     \param comm MPI communicator shared by all ranks containing the data (simulation OR postprocess ranks)
  */
-void write(const std::string& filename, const Grid *grid,
-           const std::vector<Channel>& channels, MirState::TimeType time, MPI_Comm comm);
-
-/// \overload write()
 void write(const std::string& filename, const Grid *grid,
            const std::vector<Channel>& channels, MPI_Comm comm);
 

@@ -7,8 +7,7 @@
 #include <algorithm>
 #include <set>
 
-namespace mirheo
-{
+namespace mirheo {
 
 static inline Interaction::ActivePredicate predicateOr(Interaction::ActivePredicate p1, Interaction::ActivePredicate p2)
 {
@@ -60,7 +59,7 @@ void InteractionManager::add(Interaction *interaction,
     insertChannels(cl1);
     if (cl1 != cl2)
         insertChannels(cl2);
-    if (cl3 != nullptr && (cl1 != cl3 || cl1 != cl3))
+    if (cl3 != nullptr && cl1 != cl3 && cl2 != cl3)
         insertChannels(cl3);
 
     insertClist(cl1, cellListMap_[pv1]);
@@ -110,6 +109,18 @@ real InteractionManager::getLargestCutoff() const
     return rc;
 }
 
+static std::vector<std::string> filterOutPermanentChannels(const ParticleVector *pv,
+                                                           const std::vector<std::string>& channels)
+{
+    std::vector<std::string> ch;
+    for (auto channel : channels)
+    {
+        if (!pv->local()->dataPerParticle.checkPersistence(channel))
+            ch.push_back(channel);
+    }
+    return ch;
+}
+
 std::vector<std::string> InteractionManager::getInputChannels(ParticleVector *pv) const
 {
     return _getExtraChannels(pv, inputChannels_);
@@ -131,9 +142,11 @@ void InteractionManager::clearInput(ParticleVector *pv, cudaStream_t stream)
     {
         auto it = inputChannels_.find(cl);
 
-        if (it != inputChannels_.end()) {
+        if (it != inputChannels_.end())
+        {
             const auto activeChannels = _getActiveChannels(it->second);
-            cl->clearChannels(activeChannels, stream);
+            const auto channelsToClear = filterOutPermanentChannels(pv, activeChannels);
+            cl->clearChannels(channelsToClear, stream);
         }
     }
 }
@@ -204,39 +217,6 @@ void InteractionManager::executeHalo (cudaStream_t stream)
     for (auto& p : interactions_)
         p.interaction->halo(p.pv1, p.pv2, p.pv3, p.cl1, p.cl2, p.cl3, stream);
 }
-
-
-static std::set<std::string> getAllChannelsNames(const std::map<CellList*, std::vector<Interaction::InteractionChannel>>& cellChannels)
-{
-    std::set<std::string> channels;
-    for (const auto& cellMap : cellChannels)
-        for (const auto& entry : cellMap.second)
-            channels.insert(entry.name);
-    return channels;
-}
-
-static std::string concatenate(const std::vector<std::string>& strings)
-{
-    std::string allNames;
-    for (const auto& str : strings)
-        allNames += " " + str;
-    return allNames;
-}
-
-void InteractionManager::checkCompatibleWith(const InteractionManager& next) const
-{
-    const auto outputs = getAllChannelsNames(this->outputChannels_);
-    const auto inputs  = getAllChannelsNames(next.inputChannels_);
-    std::vector<std::string> difference;
-
-    std::set_difference(inputs.begin(), inputs.end(),
-                        outputs.begin(), outputs.end(),
-                        std::inserter(difference, difference.begin()));
-
-    if (!difference.empty())
-        die("The following channels are required but not computed by interactions: %s", concatenate(difference).c_str());
-}
-
 
 std::vector<std::string> InteractionManager::_getExtraChannels(ParticleVector *pv, const std::map<CellList*, ChannelList>& allChannels) const
 {

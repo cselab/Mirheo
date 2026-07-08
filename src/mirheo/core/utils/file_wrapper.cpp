@@ -17,6 +17,10 @@ FileWrapper::FileWrapper(const std::string& fname, const std::string& mode)
     }
 }
 
+FileWrapper::FileWrapper(SpecialStream stream, bool forceFlushOnClose) {
+    open(stream, forceFlushOnClose);
+}
+
 FileWrapper::~FileWrapper()
 {
     close();

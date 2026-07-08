@@ -2,8 +2,8 @@
 #pragma once
 
 #include <mirheo/core/containers.h>
+#include <mirheo/core/datatypes.h>
 #include <mirheo/core/utils/common.h>
-#include <mirheo/core/utils/pytypes.h>
 
 #include <tuple>
 #include <vector>
@@ -16,7 +16,7 @@ namespace mirheo
 
     The topology is represented by a list of faces (three vertex indices per face).
  */
-class Mesh : public AutoObjectSnapshotTag
+class Mesh
 {
 public:
     /// Default constructor. no vertex and faces.
@@ -31,41 +31,20 @@ public:
     /// Construct a \c Mesh from a list of vertices and faces.
     Mesh(const std::vector<real3>& vertices, const std::vector<int3>& faces);
 
-    /** \brief Construct a mesh from its snapshot.
-        \param [in] loader The \c Loader object. Provides load context and unserialization functions.
-        \param [in] config The mesh parameters.
-     */
-    Mesh(Loader& loader, const ConfigObject& config);
-
     Mesh(Mesh&&); ///< move constructor
     Mesh& operator=(Mesh&&); ///< move assignment operator
 
     virtual ~Mesh();
 
-    const int& getNtriangles() const; ///< \return the number of faces
-    const int& getNvertices() const;  ///< \return the number of vertices
-    const int& getMaxDegree() const;  ///< \return the maximum valence of all vertices
+    int getNtriangles() const; ///< \return the number of faces
+    int getNvertices() const;  ///< \return the number of vertices
+    int getMaxDegree() const;  ///< \return the maximum valence of all vertices
 
 
     const PinnedBuffer<real4>& getVertices() const; ///< \return the list of vertices
     const PinnedBuffer<int3>& getFaces() const;     ///< \return the list of faces
 
-    py_types::VectorOfReal3 getPyVertices();  ///< \return the list of vertices (python compatible)
-    py_types::VectorOfInt3  getPyFaces();     ///< \return the list of faces (python compatible)
-
-    /** \brief Dump the mesh in an .off file, create a ConfigObject with the mesh name and register it in the saver.
-        \param [in,out] saver The \c Saver object. Provides save context and serialization functions.
-
-        Checks that the object type is exactly \c Mesh.
-      */
-    virtual void saveSnapshotAndRegister(Saver& saver);
-
 protected:
-    /** \brief Implementation of the snapshot saving. Reusable by potential derived classes.
-        \param [in,out] saver The \c Saver object. Provides save context and serialization functions.
-        \param [in] typeName The name of the type being saved.
-      */
-    ConfigObject _saveSnapshot(Saver& saver, const std::string& typeName);
 
     /// Update the internal value maxDegree_ from the current topology.
     void _computeMaxDegree();

@@ -6,11 +6,10 @@
 
 #include <mirheo/core/logger.h>
 
-namespace mirheo
-{
+namespace mirheo {
+namespace XDMF {
 
-namespace XDMF
-{
+
 static hsize_t product(const std::vector<hsize_t>& v)
 {
     hsize_t prod = 1;
@@ -99,9 +98,11 @@ pugi::xml_node UniformGrid::writeToXMF(pugi::xml_node node, __UNUSED std::string
     setup3Fnode(origNode, "Origin");
     origNode.text() = "0.0 0.0 0.0";
 
+    auto spacing = spacing_;
+    std::reverse(spacing.begin(), spacing.end());
     auto spaceNode = geomNode.append_child("DataItem");
     setup3Fnode(spaceNode, "Spacing");
-    spaceNode.text() = to_string(spacing_).c_str();
+    spaceNode.text() = to_string(spacing).c_str();
 
     return gridNode;
 }
@@ -162,7 +163,7 @@ std::string VertexGrid::getCentering() const    { return "Node"; }
 void VertexGrid::writeToHDF5(hid_t file_id, __UNUSED MPI_Comm comm) const
 {
     Channel posCh {positionChannelName_, (void*) positions_->data(),
-                   Channel::DataForm::Vector, XDMF::getNumberType<real>(),
+                   Channel::Vector{}, XDMF::getNumberType<real>(),
                    DataTypeWrapper<real>(), Channel::NeedShift::True};
 
     HDF5::writeDataSet(file_id, getGridDims(), posCh);
@@ -244,7 +245,7 @@ void VertexGrid::splitReadAccess(MPI_Comm comm, int chunkSize)
 void VertexGrid::readFromHDF5(hid_t file_id, __UNUSED MPI_Comm comm)
 {
     positions_->resize(dims_.getNLocal());
-    Channel posCh {positionChannelName_, positions_->data(), Channel::DataForm::Vector,
+    Channel posCh {positionChannelName_, positions_->data(), Channel::Vector{},
                    XDMF::getNumberType<real>(), DataTypeWrapper<real>(), Channel::NeedShift::True};
 
     HDF5::readDataSet(file_id, getGridDims(), posCh);
@@ -265,9 +266,9 @@ const std::string VertexGrid::positionChannelName_ = "position";
 TriangleMeshGrid::TriangleMeshGrid(std::shared_ptr<std::vector<real3>> positions,
                                    std::shared_ptr<std::vector<int3>> triangles,
                                    MPI_Comm comm) :
-    VertexGrid(positions, comm),
+    VertexGrid(std::move(positions), comm),
     dimsTriangles_(triangles->size(), comm),
-    triangles_(triangles)
+    triangles_(std::move(triangles))
 {}
 
 void TriangleMeshGrid::writeToHDF5(hid_t file_id, MPI_Comm comm) const
@@ -275,7 +276,7 @@ void TriangleMeshGrid::writeToHDF5(hid_t file_id, MPI_Comm comm) const
     VertexGrid::writeToHDF5(file_id, comm);
 
     Channel triCh {triangleChannelName_, (void*) triangles_->data(),
-                   Channel::DataForm::Triangle, Channel::NumberType::Int,
+                   Channel::Triangle{}, Channel::NumberType::Int,
                    DataTypeWrapper<int>(), Channel::NeedShift::False};
 
     HDF5::writeDataSet(file_id, &dimsTriangles_, triCh);
@@ -294,11 +295,60 @@ void TriangleMeshGrid::_writeTopology(pugi::xml_node& topoNode, const std::strin
     triangleNode.append_attribute("Precision") = std::to_string(numberTypeToPrecision(Channel::NumberType::Int)).c_str();
     triangleNode.append_attribute("Format") = "HDF";
     triangleNode.text() = (h5filename + ":/" + triangleChannelName_).c_str();
-
 }
 
 const std::string TriangleMeshGrid::triangleChannelName_ = "triangle";
 
-} // namespace XDMF
 
+
+
+
+PolylineMeshGrid::PolylineMeshGrid(std::shared_ptr<std::vector<real3>> positions,
+                                   std::shared_ptr<std::vector<int>> polylines,
+                                   int chainSize,
+                                   MPI_Comm comm) :
+    VertexGrid(std::move(positions), comm),
+    dimsPolylines_(polylines->size() / chainSize, comm),
+    polylines_(std::move(polylines)),
+    chainSize_(chainSize)
+{
+    if (polylines_->size() % chainSize != 0)
+    {
+        die("Mismatched polylines dimensions. Expected a multiple of %d.", chainSize_);
+    }
+}
+
+void PolylineMeshGrid::writeToHDF5(hid_t file_id, MPI_Comm comm) const
+{
+    VertexGrid::writeToHDF5(file_id, comm);
+
+    Channel ch {polylineChannelName_, (void*) polylines_->data(),
+                Channel::Polyline{chainSize_}, Channel::NumberType::Int,
+                DataTypeWrapper<int>(), Channel::NeedShift::False};
+
+    HDF5::writeDataSet(file_id, &dimsPolylines_, ch);
+}
+
+void PolylineMeshGrid::_writeTopology(pugi::xml_node& topoNode, const std::string& h5filename) const
+{
+    topoNode.append_attribute("TopologyType") = "Polyline";
+
+    topoNode.append_attribute("NumberOfElements") = std::to_string(dimsPolylines_.getNGlobal()).c_str();
+
+    auto plNode = topoNode.append_child("DataItem");
+
+    plNode.append_attribute("Dimensions") = (std::to_string(dimsPolylines_.getNGlobal())
+                                             + " " +
+                                             std::to_string(chainSize_)).c_str();
+
+    plNode.append_attribute("NumberType") = numberTypeToString(Channel::NumberType::Int).c_str();
+    plNode.append_attribute("Precision") = std::to_string(numberTypeToPrecision(Channel::NumberType::Int)).c_str();
+    plNode.append_attribute("Format") = "HDF";
+    plNode.text() = (h5filename + ":/" + polylineChannelName_).c_str();
+}
+
+
+const std::string PolylineMeshGrid::polylineChannelName_ = "polyline";
+
+} // namespace XDMF
 } // namespace mirheo

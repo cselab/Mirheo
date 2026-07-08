@@ -68,7 +68,7 @@ if args.vis:
     u.registerPlugins(mir.Plugins.createDumpParticles('pcap_dump', ov_rig, dump_every, [], 'h5/rigid-'))
     u.registerPlugins(mir.Plugins.createDumpMesh("mesh_dump", ov_rig, dump_every, path="ply/"))
 
-u.registerPlugins(mir.Plugins.createDumpObjectStats("rigStats", ov_rig, dump_every, path="stats"))
+u.registerPlugins(mir.Plugins.createDumpObjectStats("rigStats", ov_rig, dump_every, filename="stats/capsule.csv"))
 
 u.run(5000, dt=dt)
 

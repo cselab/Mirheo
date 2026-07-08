@@ -3,8 +3,8 @@
 
 #include <mirheo/core/utils/cpu_gpu_defines.h>
 #include <mirheo/core/utils/cuda_rng.h>
-#include <mirheo/core/utils/macros.h>
 #include <mirheo/core/utils/helper_math.h>
+#include <mirheo/core/utils/macros.h>
 
 #include <random>
 
@@ -38,12 +38,20 @@ public:
         seed2_ = dis(rng);
     }
 
-#ifdef __NVCC__
-    __device__ real3 newVelocity(__UNUSED real3 uOld, real3 uWall, real3 n, real mass) const
+    /** Compute the velocity after bouncing the particle.
+        The velocity is chosen such that it is sampled by a Maxwelian
+        distribution and has a positive dot product with the wall surface normal.
+
+        \param [in] uOld The velocity of the particle at the previous time step.
+        \param [in] uWall The velocity of the wall surface at the collision point.
+        \param [in] n The wall surface normal at the collision point.
+        \param [in] mass The particle mass.
+     */
+    __HD__ real3 newVelocity(real3 uOld, real3 uWall, real3 n, real mass) const
     {
         constexpr int maxTries = 50;
-        const real2 rand1 = Saru::normal2(seed1_, threadIdx.x, blockIdx.x);
-        const real2 rand2 = Saru::normal2(seed2_, threadIdx.x, blockIdx.x);
+        real2 rand1 = Saru::normal2(seed1_, uOld.x, uOld.y);
+        real2 rand2 = Saru::normal2(seed2_, uOld.z, uWall.x);
 
         real3 v = make_real3(rand1.x, rand1.y, rand2.x);
 
@@ -51,15 +59,14 @@ public:
         {
             if (dot(v, n) > 0) break;
 
-            const real2 rand3 = Saru::normal2(rand2.y, threadIdx.x, blockIdx.x);
-            const real2 rand4 = Saru::normal2(rand3.y, threadIdx.x, blockIdx.x);
-            v = make_real3(rand3.x, rand3.y, rand4.x);
+            rand1 = Saru::normal2(rand2.x, rand2.y, uOld.x);
+            rand2 = Saru::normal2(rand1.x, rand1.x, uOld.y);
+            v = make_real3(rand1.x, rand1.y, rand2.x);
         }
         v = normalize(v) * math::sqrt(kBT_ / mass);
 
         return uWall + v;
     }
-#endif
 
 private:
 

@@ -130,7 +130,7 @@ TEST (PACKERS_EXCHANGE, particles)
     domain.globalSize  = {L, L, L};
     domain.globalStart = {0.0_r, 0.0_r, 0.0_r};
     domain.localSize   = {L, L, L};
-    MirState state(domain, dt, UnitConversion{});
+    MirState state(domain, dt);
     auto pv = initializeRandomPV(MPI_COMM_WORLD, &state, density);
     auto lpv = pv->local();
     auto hpv = pv->halo();
@@ -302,7 +302,7 @@ TEST (PACKERS_EXCHANGE, objects_exchange)
     domain.globalSize  = {L, L, L};
     domain.globalStart = {0.0_r, 0.0_r, 0.0_r};
     domain.localSize   = {L, L, L};
-    MirState state(domain, dt, UnitConversion{});
+    MirState state(domain, dt);
     auto rev = initializeRandomREV(MPI_COMM_WORLD, &state, nObjs, objSize);
     auto lrev = rev->local();
     auto hrev = rev->halo();
@@ -351,7 +351,7 @@ TEST (PACKERS_EXCHANGE, objects_reverse_exchange)
     domain.globalSize  = {L, L, L};
     domain.globalStart = {0.0_r, 0.0_r, 0.0_r};
     domain.localSize   = {L, L, L};
-    MirState state(domain, dt, UnitConversion{});
+    MirState state(domain, dt);
     auto rev = initializeRandomREV(MPI_COMM_WORLD, &state, nObjs, objSize);
     auto lrev = rev->local();
     auto hrev = rev->halo();
@@ -414,7 +414,7 @@ TEST (PACKERS_EXCHANGE, objects_extra_exchange)
     domain.globalSize  = {L, L, L};
     domain.globalStart = {0.0_r, 0.0_r, 0.0_r};
     domain.localSize   = {L, L, L};
-    MirState state(domain, dt, UnitConversion{});
+    MirState state(domain, dt);
     auto rev = initializeRandomREV(MPI_COMM_WORLD, &state, nObjs, objSize);
     auto lrev = rev->local();
     auto hrev = rev->halo();

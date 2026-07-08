@@ -21,7 +21,7 @@ vv = mir.Integrators.VelocityVerlet('vv')
 u.registerIntegrator(vv)
 u.setIntegrator(vv, pv)
 
-u.registerPlugins(mir.Plugins.createStats('stats', "stats", 200))
+u.registerPlugins(mir.Plugins.createStats('stats', every=200, filename="stats.csv"))
 
 u.run(2000, dt=dt)
 

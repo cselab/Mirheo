@@ -20,7 +20,7 @@ class CellList;
 class LocalParticleVector;
 
 /// a GPU compatible functor that computes DPD interactions
-class PairwiseDPDHandler : public ParticleFetcherWithVelocity
+class PairwiseDPDHandler : public ParticleFetcher
 {
 public:
 
@@ -29,19 +29,20 @@ public:
 
     /// constructor
     PairwiseDPDHandler(real rc, real a, real gamma, real power) :
-        ParticleFetcherWithVelocity(rc),
+        ParticleFetcher(rc),
         a_(a),
         gamma_(gamma),
         power_(power),
-        invrc_(1.0 / rc)
+        invrc_(1.0_r / rc)
     {}
 
     /// evaluate the force
-    __D__ inline real3 operator()(const ParticleType dst, int dstId, const ParticleType src, int srcId) const
+    __D__ inline real3 operator()(const ParticleType dst, __UNUSED int dstId, const ParticleType src, __UNUSED int srcId) const
     {
         const real3 dr = dst.r - src.r;
         const real rij2 = dot(dr, dr);
-        if (rij2 > rc2_) return make_real3(0.0_r);
+        if (rij2 > rc2_ || rij2 < 1e-6_r)
+            return make_real3(0.0_r);
 
         const real invrij = math::rsqrt(rij2);
         const real rij = rij2 * invrij;
@@ -121,16 +122,10 @@ public:
         return text_IO::readFromStream(fin, stepGen_);
     }
 
-    /// \return type name string
-    static std::string getTypeName()
-    {
-        return "PairwiseDPD";
-    }
-
 private:
     static real computeSigma(real gamma, real kBT, real dt)
     {
-        return math::sqrt(2.0 * gamma * kBT / dt);
+        return math::sqrt(2.0_r * gamma * kBT / dt);
     }
 
     StepRandomGen stepGen_;

@@ -4,17 +4,12 @@
 
 #include <mirheo/core/logger.h>
 #include <mirheo/core/pvs/particle_vector.h>
-#include <mirheo/core/utils/config.h>
 
 namespace mirheo
 {
 
 IntegratorMinimize::IntegratorMinimize(const MirState *state, const std::string& name, real maxDisplacement) :
     Integrator(state, name), maxDisplacement_{maxDisplacement}
-{}
-
-IntegratorMinimize::IntegratorMinimize(const MirState *state, Loader&, const ConfigObject& object) :
-    IntegratorMinimize(state, object["name"], object["maxDisplacement"])
 {}
 
 void IntegratorMinimize::execute(ParticleVector *pv, cudaStream_t stream)
@@ -34,18 +29,6 @@ void IntegratorMinimize::execute(ParticleVector *pv, cudaStream_t stream)
 
     integrate(pv, dt, st2, stream);
     invalidatePV_(pv);
-}
-
-void IntegratorMinimize::saveSnapshotAndRegister(Saver& saver)
-{
-    saver.registerObject(this, _saveSnapshot(saver, "IntegratorMinimize"));
-}
-
-ConfigObject IntegratorMinimize::_saveSnapshot(Saver& saver, const std::string& typeName)
-{
-    ConfigObject config = Integrator::_saveSnapshot(saver, typeName);
-    config.emplace("maxDisplacement", saver(maxDisplacement_));
-    return config;
 }
 
 } // namespace mirheo

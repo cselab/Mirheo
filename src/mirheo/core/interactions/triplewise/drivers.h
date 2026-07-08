@@ -1,8 +1,7 @@
 // Copyright 2020 ETH Zurich. All Rights Reserved.
 #pragma once
 
-// FIXME: Move type_traits to interactions/type_traits.h?
-#include <mirheo/core/interactions/pairwise/kernels/type_traits.h>
+#include "kernels/type_traits.h"
 
 #include <array>
 

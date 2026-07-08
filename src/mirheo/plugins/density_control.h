@@ -17,7 +17,7 @@ namespace mirheo
 {
 
 class ParticleVector;
-class Field;
+class ScalarField;
 
 /** Apply forces on particles in order to keep the number density constant within layers in a field.
     The layers are determined by the level sets of the field.
@@ -87,7 +87,7 @@ private:
     LevelBounds levelBounds_;
     real targetDensity_;
 
-    std::unique_ptr<Field> spaceDecompositionField_; /// a scalar field used to decompose the space with level sets
+    std::unique_ptr<ScalarField> spaceDecompositionField_; /// a scalar field used to decompose the space with level sets
 
     int nSamples_;                                   /// number of times we called sample function
     PinnedBuffer<unsigned long long int> nInsides_;  /// number of samples per subregion

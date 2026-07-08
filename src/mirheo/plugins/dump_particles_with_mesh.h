@@ -40,6 +40,8 @@ public:
     */
     ParticleWithMeshDumperPlugin(std::string name, std::string path);
 
+    ~ParticleWithMeshDumperPlugin();
+
     void handshake() override;
     void deserialize() override;
 

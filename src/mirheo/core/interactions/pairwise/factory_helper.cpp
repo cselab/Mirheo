@@ -1,170 +1,55 @@
 // Copyright 2020 ETH Zurich. All Rights Reserved.
 #include "factory_helper.h"
 
-namespace mirheo
-{
+namespace mirheo {
+namespace factory_helper {
 
-namespace factory_helper
-{
-template <> real ParamsReader::makeDefault<real>() const {return defaultReal;}
-
-
-template <> void readParams<SW2Params>(SW2Params& p, ParametersWrap& desc, ParamsReader reader)
-{
-    const auto epsilon = reader.read<real>(desc, "epsilon");
-    const auto sigma   = reader.read<real>(desc, "sigma");
-    const auto A       = reader.read<real>(desc, "A");
-    const auto B       = reader.read<real>(desc, "B");
-
-    if (epsilon != defaultReal) p.epsilon  = epsilon;
-    if (sigma   != defaultReal) p.sigma    = sigma;
-    if (A       != defaultReal) p.A        = A;
-    if (B       != defaultReal) p.B        = B;
-}
-
-template <> void readParams<DPDParams>(DPDParams& p, ParametersWrap& desc, ParamsReader reader)
-{
-    const auto a     = reader.read<real>(desc, "a");
-    const auto gamma = reader.read<real>(desc, "gamma");
-    const auto kBT   = reader.read<real>(desc, "kBT");
-    const auto power = reader.read<real>(desc, "power");
-
-    if (a     != defaultReal) p.a     = a;
-    if (gamma != defaultReal) p.gamma = gamma;
-    if (kBT   != defaultReal) p.kBT   = kBT;
-    if (power != defaultReal) p.power = power;
-}
-
-template <> void readParams<NoRandomDPDParams>(NoRandomDPDParams& p, ParametersWrap& desc, ParamsReader reader)
-{
-    const auto a     = reader.read<real>(desc, "a");
-    const auto gamma = reader.read<real>(desc, "gamma");
-    const auto kBT   = reader.read<real>(desc, "kBT");
-    const auto power = reader.read<real>(desc, "power");
-
-    if (a     != defaultReal) p.a     = a;
-    if (gamma != defaultReal) p.gamma = gamma;
-    if (kBT   != defaultReal) p.kBT   = kBT;
-    if (power != defaultReal) p.power = power;
-}
-
-template <> void readParams<LJAwarenessParamsNone  >(__UNUSED LJAwarenessParamsNone&   p, __UNUSED ParametersWrap& desc, __UNUSED ParamsReader reader) {}
-template <> void readParams<LJAwarenessParamsObject>(__UNUSED LJAwarenessParamsObject& p, __UNUSED ParametersWrap& desc, __UNUSED ParamsReader reader) {}
-template <> void readParams<LJAwarenessParamsRod>(LJAwarenessParamsRod& p, ParametersWrap& desc, ParamsReader reader)
-{
-    const auto minSegmentsDist = reader.read<real>(desc, "min_segments_distance");
-    if (minSegmentsDist != defaultReal) p.minSegmentsDist = static_cast<int>(minSegmentsDist);
-}
-
-template <> void readParams<LJParams>(LJParams& p, ParametersWrap& desc, ParamsReader reader)
-{
-    const auto epsilon = reader.read<real>(desc, "epsilon");
-    const auto sigma   = reader.read<real>(desc, "sigma");
-
-    if (epsilon != defaultReal) p.epsilon  = epsilon;
-    if (sigma   != defaultReal) p.sigma    = sigma;
-}
-
-template <> void readParams<RepulsiveLJParams>(RepulsiveLJParams& p, ParametersWrap& desc, ParamsReader reader)
-{
-    const auto epsilon  = reader.read<real>(desc, "epsilon");
-    const auto sigma    = reader.read<real>(desc, "sigma");
-    const auto maxForce = reader.read<real>(desc, "max_force");
-
-    if (epsilon  != defaultReal) p.epsilon  = epsilon;
-    if (sigma    != defaultReal) p.sigma    = sigma;
-    if (maxForce != defaultReal) p.maxForce = maxForce;
-}
-
-template <> void readParams<MDPDParams>(MDPDParams& p, ParametersWrap& desc, ParamsReader reader)
-{
-    const auto rd    = reader.read<real>(desc, "rd");
-    const auto a     = reader.read<real>(desc, "a");
-    const auto b     = reader.read<real>(desc, "b");
-    const auto gamma = reader.read<real>(desc, "gamma");
-    const auto kBT   = reader.read<real>(desc, "kBT");
-    const auto power = reader.read<real>(desc, "power");
-
-    if (rd     != defaultReal) p.rd    = rd;
-    if (a      != defaultReal) p.a     = a;
-    if (b      != defaultReal) p.b     = b;
-    if (gamma  != defaultReal) p.gamma = gamma;
-    if (kBT    != defaultReal) p.kBT   = kBT;
-    if (power  != defaultReal) p.power = power;
-}
-
-template <> void readParams<DensityParams>(__UNUSED DensityParams& p, __UNUSED ParametersWrap& desc, __UNUSED ParamsReader reader) {}
-
-template <> void readParams<SimpleMDPDDensityKernelParams>(__UNUSED SimpleMDPDDensityKernelParams& p, __UNUSED ParametersWrap& desc, __UNUSED ParamsReader reader) {}
-template <> void readParams<WendlandC2DensityKernelParams>(__UNUSED WendlandC2DensityKernelParams& p, __UNUSED ParametersWrap& desc, __UNUSED ParamsReader reader) {}
-
-template <> void readParams<LinearPressureEOSParams>(LinearPressureEOSParams& p, ParametersWrap& desc, ParamsReader reader)
-{
-    const auto soundSpeed = reader.read<real>(desc, "sound_speed");
-    const auto rho0       = reader.read<real>(desc, "rho_0");
-
-    if (soundSpeed != defaultReal) p.soundSpeed = soundSpeed;
-    if (rho0       != defaultReal) p.rho0       = rho0;
-}
-
-template <> void readParams<QuasiIncompressiblePressureEOSParams>(QuasiIncompressiblePressureEOSParams& p, ParametersWrap& desc, ParamsReader reader)
-{
-    const auto p0   = reader.read<real>(desc, "p0");
-    const auto rhor = reader.read<real>(desc, "rho_r");
-
-    if (p0   != defaultReal) p.p0   = p0;
-    if (rhor != defaultReal) p.rhor = rhor;
-}
-
-template <> void readParams<SDPDParams>(SDPDParams& p, ParametersWrap& desc, ParamsReader reader)
-{
-    const auto viscosity = reader.read<real>(desc, "viscosity");
-    const auto kBT       = reader.read<real>(desc, "kBT");
-
-    if (viscosity != defaultReal) p.viscosity = viscosity;
-    if (kBT       != defaultReal) p.kBT       = kBT;
-}
-
-SW2Params readSW2Params(ParametersWrap& desc)
-{
-    const ParamsReader reader {ParamsReader::Mode::FailIfNotFound};
-    SW2Params p;
-    readParams(p, desc, reader);
-    return p;
-}
 
 DPDParams readDPDParams(ParametersWrap& desc)
 {
     DPDParams p;
-    readParams(p, desc, {ParamsReader::Mode::FailIfNotFound});
+    p.a     = desc.read<real>("a");
+    p.gamma = desc.read<real>("gamma");
+    p.kBT   = desc.read<real>("kBT");
+    p.power = desc.read<real>("power");
     return p;
 }
 
-static VarLJAwarenessParams readLJAwarenessParams(ParametersWrap& desc, ParamsReader reader)
+ViscoElasticDPDParams readViscoElasticDPDParams(ParametersWrap& desc)
+{
+    ViscoElasticDPDParams p;
+    p.a     = desc.read<real>("a");
+    p.gamma = desc.read<real>("gamma");
+    p.kBT   = desc.read<real>("kBT");
+    p.power = desc.read<real>("power");
+    p.H     = desc.read<real>("H");
+    p.zeta  = desc.read<real>("friction");
+    p.kBTC  = desc.read<real>("kBTC");
+    p.n0     = desc.read<real>("n0");
+    return p;
+}
+
+static VarAwarenessParams readAwarenessParams(ParametersWrap& desc)
 {
     if (!desc.exists<std::string>("aware_mode"))
-        return LJAwarenessParamsNone {};
+        return AwarenessParamsNone {};
 
-    VarLJAwarenessParams varP;
+    VarAwarenessParams varP;
 
     const auto awareMode = desc.read<std::string>("aware_mode");
 
     if (awareMode == "None")
     {
-        LJAwarenessParamsNone p;
-        readParams(p, desc, reader);
-        varP = p;
+        varP = AwarenessParamsNone{};
     }
     else if (awareMode == "Object")
     {
-        LJAwarenessParamsObject p;
-        readParams(p, desc, reader);
-        varP = p;
+        varP = AwarenessParamsObject{};
     }
     else if (awareMode == "Rod")
     {
-        LJAwarenessParamsRod p;
-        readParams(p, desc, reader);
+        AwarenessParamsRod p;
+        p.minSegmentsDist = static_cast<int>(desc.read<real>("min_segments_distance"));
         varP = p;
     }
     else
@@ -177,26 +62,54 @@ static VarLJAwarenessParams readLJAwarenessParams(ParametersWrap& desc, ParamsRe
 
 LJParams readLJParams(ParametersWrap& desc)
 {
-    const ParamsReader reader {ParamsReader::Mode::FailIfNotFound};
     LJParams p;
-    readParams(p, desc, reader);
+    p.epsilon = desc.read<real>("epsilon");
+    p.sigma   = desc.read<real>("sigma");
     return p;
 }
 
 RepulsiveLJParams readRepulsiveLJParams(ParametersWrap& desc)
 {
-    const ParamsReader reader {ParamsReader::Mode::FailIfNotFound};
     RepulsiveLJParams p;
-    readParams(p, desc, reader);
-    p.varLJAwarenessParams = readLJAwarenessParams(desc, reader);
+    p.epsilon  = desc.read<real>("epsilon");
+    p.sigma    = desc.read<real>("sigma");
+    p.maxForce = desc.read<real>("max_force");
+    p.varAwarenessParams = readAwarenessParams(desc);
     return p;
 }
 
+GrowingRepulsiveLJParams readGrowingRepulsiveLJParams(ParametersWrap& desc)
+{
+    GrowingRepulsiveLJParams p;
+    p.epsilon  = desc.read<real>("epsilon");
+    p.sigma    = desc.read<real>("sigma");
+    p.maxForce = desc.read<real>("max_force");
+    p.initialLengthFraction = desc.read<real>("init_length_fraction");
+    p.growUntil             = desc.read<real>("grow_until");
+    p.varAwarenessParams = readAwarenessParams(desc);
+    return p;
+}
+
+MorseParams readMorseParams(ParametersWrap& desc)
+{
+    MorseParams p;
+    p.De       = desc.read<real>("De");
+    p.r0       = desc.read<real>("r0");
+    p.beta     = desc.read<real>("beta");
+    p.maxForce = desc.read<real>("max_force");
+    p.varAwarenessParams = readAwarenessParams(desc);
+    return p;
+}
 
 MDPDParams readMDPDParams(ParametersWrap& desc)
 {
     MDPDParams p;
-    readParams(p, desc, {ParamsReader::Mode::FailIfNotFound});
+    p.rd    = desc.read<real>("rd");
+    p.a     = desc.read<real>("a");
+    p.b     = desc.read<real>("b");
+    p.gamma = desc.read<real>("gamma");
+    p.kBT   = desc.read<real>("kBT");
+    p.power = desc.read<real>("power");
     return p;
 }
 
@@ -204,19 +117,14 @@ DensityParams readDensityParams(ParametersWrap& desc)
 {
     DensityParams p;
     const auto kernel = desc.read<std::string>("density_kernel");
-    const ParamsReader reader {ParamsReader::Mode::FailIfNotFound};
 
     if (kernel == "MDPD")
     {
-        SimpleMDPDDensityKernelParams density;
-        readParams(density, desc, reader);
-        p.varDensityKernelParams = density;
+        p.varDensityKernelParams = SimpleMDPDDensityKernelParams{};
     }
     else if (kernel == "WendlandC2")
     {
-        WendlandC2DensityKernelParams density;
-        readParams(density, desc, reader);
-        p.varDensityKernelParams = density;
+        p.varDensityKernelParams = WendlandC2DensityKernelParams{};
     }
     else
     {
@@ -225,16 +133,14 @@ DensityParams readDensityParams(ParametersWrap& desc)
     return p;
 }
 
-static VarSDPDDensityKernelParams readSDPDDensityKernelParams(ParametersWrap& desc, ParamsReader reader)
+static VarSDPDDensityKernelParams readSDPDDensityKernelParams(ParametersWrap& desc)
 {
     VarSDPDDensityKernelParams p;
     const auto kernel = desc.read<std::string>("density_kernel");
 
     if (kernel == "WendlandC2")
     {
-        WendlandC2DensityKernelParams density;
-        readParams(density, desc, reader);
-        p = density;
+        p = WendlandC2DensityKernelParams{};
     }
     else
     {
@@ -243,7 +149,7 @@ static VarSDPDDensityKernelParams readSDPDDensityKernelParams(ParametersWrap& de
     return p;
 }
 
-static VarEOSParams readEOSParams(ParametersWrap& desc, ParamsReader reader)
+static VarEOSParams readEOSParams(ParametersWrap& desc)
 {
     VarEOSParams varEOS;
     const auto eos = desc.read<std::string>("EOS");
@@ -251,13 +157,15 @@ static VarEOSParams readEOSParams(ParametersWrap& desc, ParamsReader reader)
     if (eos == "Linear")
     {
         LinearPressureEOSParams p;
-        readParams(p, desc, reader);
+        p.soundSpeed = desc.read<real>("sound_speed");
+        p.rho0       = desc.read<real>("rho_0");
         varEOS = p;
     }
     else if (eos == "QuasiIncompressible")
     {
         QuasiIncompressiblePressureEOSParams p;
-        readParams(p, desc, reader);
+        p.p0   = desc.read<real>("p0");
+        p.rhor = desc.read<real>("rho_r");
         varEOS = p;
     }
     else
@@ -269,22 +177,27 @@ static VarEOSParams readEOSParams(ParametersWrap& desc, ParamsReader reader)
 
 SDPDParams readSDPDParams(ParametersWrap& desc)
 {
-    const ParamsReader reader {ParamsReader::Mode::FailIfNotFound};
     SDPDParams p;
+    p.viscosity = desc.read<real>("viscosity");
+    p.kBT       = desc.read<real>("kBT");
+    p.varEOSParams           = readEOSParams(desc);
+    p.varDensityKernelParams = readSDPDDensityKernelParams(desc);
+    return p;
+}
 
-    readParams(p, desc, reader);
-
-    p.varEOSParams           = readEOSParams(desc, reader);
-    p.varDensityKernelParams = readSDPDDensityKernelParams(desc, reader);
-
+SW2Params readSW2Params(ParametersWrap& desc)
+{
+    SW2Params p;
+    p.epsilon = desc.read<real>("epsilon");
+    p.sigma   = desc.read<real>("sigma");
+    p.A       = desc.read<real>("A");
+    p.B       = desc.read<real>("B");
     return p;
 }
 
 
-
-VarStressParams readStressParams(ParametersWrap& desc)
+std::optional<real> readStressPeriod(ParametersWrap& desc)
 {
-    VarStressParams varParams;
     bool stress {false};
 
     if (desc.exists<bool>("stress"))
@@ -293,56 +206,13 @@ VarStressParams readStressParams(ParametersWrap& desc)
     if (stress)
     {
         const auto period = desc.read<real>("stress_period");
-        return StressActiveParams {period};
+        return {period};
     }
     else
     {
-        return StressNoneParams {};
+        return std::nullopt;
     }
 }
 
-void readSpecificParams(RepulsiveLJParams& p, ParametersWrap& desc)
-{
-    const ParamsReader reader{ParamsReader::Mode::DefaultIfNotFound};
-
-    readParams(p, desc, reader);
-
-    mpark::visit([&](auto& awareParams)
-    {
-        readParams(awareParams, desc, reader);
-    }, p.varLJAwarenessParams);
-}
-
-void readSpecificParams(DensityParams& p, ParametersWrap& desc)
-{
-    const ParamsReader reader{ParamsReader::Mode::DefaultIfNotFound};
-
-    readParams(p, desc, reader);
-
-    mpark::visit([&](auto& densityParams)
-    {
-        readParams(densityParams, desc, reader);
-    }, p.varDensityKernelParams);
-}
-
-void readSpecificParams(SDPDParams& p, ParametersWrap& desc)
-{
-    const ParamsReader reader{ParamsReader::Mode::DefaultIfNotFound};
-
-    readParams(p, desc, reader);
-
-    mpark::visit([&](auto& eosParams)
-    {
-        readParams(eosParams, desc, reader);
-    }, p.varEOSParams);
-
-    mpark::visit([&](auto& densityParams)
-    {
-        readParams(densityParams, desc, reader);
-    }, p.varDensityKernelParams);
-}
-
-
 } // namespace factory_helper
-
 } // namespace mirheo

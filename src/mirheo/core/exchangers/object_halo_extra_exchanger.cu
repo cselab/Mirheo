@@ -139,7 +139,7 @@ void ObjectExtraExchanger::prepareData(size_t id, cudaStream_t stream)
     const int nthreads = 256;
     const int nblocks = static_cast<int>(map.size());
 
-    mpark::visit([&](auto packerHandler)
+    std::visit([&](auto packerHandler)
     {
         SAFE_KERNEL_LAUNCH(
             object_halo_extra_exchanger_kernels::pack,
@@ -167,7 +167,7 @@ void ObjectExtraExchanger::combineAndUploadData(size_t id, cudaStream_t stream)
     const int nblocks  = totalRecvd;
     const size_t shMemSize = offsets.size() * sizeof(offsets[0]);
 
-    mpark::visit([&](auto unpackerHandler)
+    std::visit([&](auto unpackerHandler)
     {
         SAFE_KERNEL_LAUNCH(
             object_halo_extra_exchanger_kernels::unpack,

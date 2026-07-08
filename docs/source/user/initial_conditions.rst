@@ -9,12 +9,12 @@ from the previous state
 
 Summary
 ========
-.. automodsumm:: _mirheo.InitialConditions
+.. automodsumm:: mmirheo.InitialConditions
 
 Details
 ========
-.. automodule:: _mirheo.InitialConditions
+.. automodule:: mmirheo.InitialConditions
    :members:
    :show-inheritance:
    :undoc-members:
-   :special-members: __init__ 
+   :special-members: __init__

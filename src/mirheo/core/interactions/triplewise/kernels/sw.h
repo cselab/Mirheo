@@ -408,9 +408,6 @@ public:
     /// get the handler that can be used on device
     const HandlerType& handler() const { return handler_; }
 
-    /// \return type name string
-    static std::string getTypeName() { return "SW3"; }
-
 private:
     SW3Handler handler_;
 };

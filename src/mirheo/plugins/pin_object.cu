@@ -172,7 +172,8 @@ void PinObjectPlugin::setup(Simulation* simulation, const MPI_Comm& comm, const 
 void PinObjectPlugin::handshake()
 {
     const bool isRov = (rov_ != nullptr);
-    SimpleSerializer::serialize(sendBuffer_, ovName_, isRov);
+    const bool dumpTorque = isRov && (rotation_.x != Unrestricted || rotation_.y != Unrestricted || rotation_.z != Unrestricted);
+    SimpleSerializer::serialize(sendBuffer_, ovName_, dumpTorque);
     _send(sendBuffer_);
 }
 
@@ -245,8 +246,8 @@ void ReportPinObjectPlugin::handshake()
     recv();
 
     std::string ovName;
-    bool isRov;
-    SimpleSerializer::deserialize(data_, ovName, isRov);
+    bool dumpTorque;
+    SimpleSerializer::deserialize(data_, ovName, dumpTorque);
 
     if (activated_ && rank_ == 0 && fout_.get() == nullptr)
     {
@@ -258,7 +259,7 @@ void ReportPinObjectPlugin::handshake()
         // print header
         fprintf(fout_.get(), "objId,time,fx,fy,fz");
 
-        if (isRov)
+        if (dumpTorque)
             fprintf(fout_.get(), ",Tx,Ty,Tz");
 
         fprintf(fout_.get(), "\n");

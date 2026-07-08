@@ -1,6 +1,9 @@
 // Copyright 2020 ETH Zurich. All Rights Reserved.
-#include <mirheo/core/pvs/particle_vector.h>
 
+#include "interactions.h"
+#include "class_wrapper.h"
+
+#include <mirheo/core/interactions/chain/chain.h>
 #include <mirheo/core/interactions/factory.h>
 #include <mirheo/core/interactions/interface.h>
 #include <mirheo/core/interactions/membrane/base_membrane.h>
@@ -9,10 +12,9 @@
 #include <mirheo/core/interactions/pairwise/base_pairwise.h>
 #include <mirheo/core/interactions/rod/base_rod.h>
 #include <mirheo/core/interactions/triplewise/base_triplewise.h>
+#include <mirheo/core/pvs/particle_vector.h>
 
-#include "bindings.h"
-#include "class_wrapper.h"
-#include "variant_cast.h"
+#include <pybind11/stl.h>
 
 namespace mirheo
 {
@@ -108,6 +110,12 @@ void exportInteractions(py::module& m)
 
                 w(r) = \begin{cases} (1-r)^{p}, & r < 1 \\ 0, & r \geqslant 1 \end{cases}
 
+        * **ViscoElasticDPD**:
+            Extension of the DPD method to include visco-elasticity. See [Bosch1999]_.
+
+        * **ViscoElasticSmoothVelDPD**:
+            Same as ViscoElasticDPD but uses a smoothed velocity for the shear contributions to Q.
+            The smoothed channel must be computed by a plugin, see e.g. :any:`createExpMovingAverage`.
 
         * **MDPD**:
             Compute MDPD interaction as described in [Warren2003].
@@ -177,6 +185,20 @@ void exportInteractions(py::module& m)
 
             Note that in the implementation, the force is bounded for stability at larger time steps.
 
+        * **GrowingRepulsiveLJ**:
+            Same as **RepulsiveLJ**, but the length scale is growing linearly in time until a prespecified time, from a specified fraction to 1. This is useful when growing membranes while avoiding overlaps.
+
+
+        * **Morse**:
+            Pairwise interaction according to the classical `Morse potential <https://en.wikipedia.org/wiki/Morse_potential>`_
+
+            .. math::
+
+                \mathbf{F}_{ij} = 2 D_e \beta \left( e^{2 \beta (r_0-r)} - e^{\beta (r_0-r)} \right) \frac{\mathbf{r}}{r},
+
+            where :math:`r` is the distance between the particles.
+            The force magnitude can be capped to a maximal value max_force.
+
         * **Density**:
             Compute density of particles with a given kernel.
 
@@ -200,7 +222,7 @@ void exportInteractions(py::module& m)
 
                 .. math::
 
-                    w_\rho(r) = \frac{21}{2\pi} \left( 1 - \frac{r}{r_c} \right)^4 \left( 1 + 4 \frac{r}{r_c} \right)
+                    w_\rho(r) = \frac{21}{2\pi r_c^3} \left( 1 - \frac{r}{r_c} \right)^4 \left( 1 + 4 \frac{r}{r_c} \right)
 
 
         * **SW**:
@@ -222,6 +244,10 @@ void exportInteractions(py::module& m)
         .. [Groot1997] Groot, R. D., & Warren, P. B. (1997).
             Dissipative particle dynamics: Bridging the gap between atomistic and mesoscopic simulations.
             J. Chem. Phys., 107(11), 4423-4435. `doi <https://doi.org/10.1063/1.474784>`
+
+        .. [Bosch1999] Ten Bosch, B. I. M.
+           "On an extension of Dissipative Particle Dynamics for viscoelastic flow modelling."
+           Journal of non-newtonian fluid mechanics 83.3 (1999): 231-248.
 
         .. [Warren2003] Warren, P. B.
             "Vapor-liquid coexistence in many-body dissipative particle dynamics."
@@ -254,6 +280,31 @@ void exportInteractions(py::module& m)
                 * **kBT**: :math:`k_B T`
                 * **power**: :math:`p` in the weight function
 
+
+            * **kind** = "ViscoElasticDPD"
+
+                * **a**: :math:`a`
+                * **gamma**: :math:`\gamma`
+                * **kBT**: :math:`k_B T`
+                * **power**: :math:`p` in the weight function
+                * **H**: :math:`H` in the elastic modulus
+                * **friction**: :math:`\zeta` the polymer friction coefficient
+                * **kBTC**: :math:`k_B T_C` the chain temperature
+                * **n0**: :math:`n_0` the number density of the fluid
+
+
+            * **kind** = "ViscoElasticSmoothVelDPD"
+
+                * **a**: :math:`a`
+                * **gamma**: :math:`\gamma`
+                * **kBT**: :math:`k_B T`
+                * **power**: :math:`p` in the weight function
+                * **H**: :math:`H` in the elastic modulus
+                * **friction**: :math:`\zeta` the polymer friction coefficient
+                * **kBTC**: :math:`k_B T_C` the chain temperature
+                * **n0**: :math:`n_0` the number density of the fluid
+
+
             * **kind** = "MDPD"
 
                 * **rd**: :math:`r_d`
@@ -272,6 +323,12 @@ void exportInteractions(py::module& m)
                 * **density_kernel**: the desired density kernel (see below)
 
 
+            * **kind** = "LJ"
+
+                * **epsilon**: :math:`\varepsilon`
+                * **sigma**: :math:`\sigma`
+
+
             * **kind** = "RepulsiveLJ"
 
                 * **epsilon**: :math:`\varepsilon`
@@ -283,6 +340,30 @@ void exportInteractions(py::module& m)
                       That restriction only applies if both Particle Vectors in the interactions are the same and is actually an Object Vector.
                     * if "Rod", the particles interact with all other particles except with the ones which are below a given a distance
                       (in number of segment) of the same rod vector. The distance is specified by the kwargs parameter **min_segments_distance**.
+
+            * **kind** = "GrowingRepulsiveLJ"
+
+                * **epsilon**: :math:`\varepsilon`
+                * **sigma**: :math:`\sigma`
+                * **max_force**: force magnitude will be capped to not exceed **max_force**
+                * **aware_mode**:
+                    * if "None", all particles interact with each other.
+                    * if "Object", the particles belonging to the same object in an object vector do not interact with each other.
+                      That restriction only applies if both Particle Vectors in the interactions are the same and is actually an Object Vector.
+                    * if "Rod", the particles interact with all other particles except with the ones which are below a given a distance
+                      (in number of segment) of the same rod vector. The distance is specified by the kwargs parameter **min_segments_distance**.
+                * **init_length_fraction**: tnitial length factor. Must be in [0, 1].
+                * **grow_until**: time after which the length quantities are scaled by one.
+
+
+
+            * **kind** = "Morse"
+
+                * **De**: :math:`D_e`
+                * **r0**: :math:`r_0`
+                * **beta**: :math:`\beta`
+                * **max_force**: maximal force magnitude
+                * **aware_mode**: See "RepulsiveLJ" kernel description.
 
 
             * **kind** = "Density"
@@ -562,7 +643,11 @@ void exportInteractions(py::module& m)
                 \mathbf{F}_{ij} &= \varepsilon \mathbf{\hat{x}}
 
         * **SW**:
-            **TODO**
+            The three-body term of the Stillinger-Weber potential, see [Stillinger1985]_.
+
+        .. [Stillinger1985] Stillinger, F. H. & Weber, T. A.
+                            Computer simulation of local order in condensed phases of silicon.
+                            Physical review B, 1985, 31, 5262
     )");
 
     pyIntTriplewise.def(py::init(&createTriplewiseInteraction),
@@ -580,7 +665,25 @@ void exportInteractions(py::module& m)
 
             * **kind** = "SW"
 
-                **TODO**
+                * **lambda_**: :math:`\lambda`, strength of the three-body term
+                * **epsilon**: :math:`\varepsilon`, energy scale
+                * **theta**: :math:`\theta_0`, equilibrium angle
+                * **gamma**: :math:`\gamma`, decay length scale of the angular term
+                * **sigma**: :math:`\sigma`, length scale
+    )");
+
+    py::handlers_class<ChainInteraction> pyChainFENE(m, "ChainFENE", pyInt, R"(
+        FENE forces between beads of a :any:`ChainVector`.
+    )");
+
+    pyChainFENE.def(py::init(&interaction_factory::createInteractionChainFENE),
+                    "state"_a, "name"_a, "ks"_a, "rmax"_a, "stress_period"_a=std::nullopt, R"(
+            Args:
+                name: name of the interaction
+                ks: the spring constant
+                rmax: maximal extension of the springs
+                stress_period: if set, compute the stresses on particles at this given period, in simulation time.
+
     )");
 }
 

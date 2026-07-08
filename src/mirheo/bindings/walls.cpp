@@ -1,5 +1,5 @@
 // Copyright 2020 ETH Zurich. All Rights Reserved.
-#include "bindings.h"
+#include "walls.h"
 #include "class_wrapper.h"
 
 #include <mirheo/core/walls/factory.h>
@@ -72,24 +72,28 @@ void exportWalls(py::module& m)
         )");
 
     py::handlers_class< SimpleStationaryWall<StationaryWallSDF> >(m, "SDF", pywall, R"(
-        This wall is based on an arbitrary Signed Distance Function (SDF) defined in the simulation domain on a regular Cartesian grid.
-        The wall reads the SDF data from a custom format ``.sdf`` file, that has a special structure.
+        Arbitrary Signed Distance Function (SDF) defined in the simulation domain on a regular Cartesian grid.
+        Requires the SDF data from a custom format ``.sdf`` file, that has the following structure:
 
-        First two lines define the header: three real number separated by spaces govern the size of the domain where the SDF is defined,
+        The first two lines (header) contain the meta-data: three real numbers separated by spaces govern the size of the domain where the SDF is defined,
         and next three integer numbers (:math:`Nx\,\,Ny\,\,Nz`) define the resolution.
-        Next the :math:`Nx \times Ny \times Nz` single precision realing point values are written (in binary representation).
+        Next the :math:`Nx \times Ny \times Nz` single precision real point values are written (in binary representation).
+        The elements are ordered following the C convention (the x axis is the fast running index).
 
         Negative SDF values correspond to the domain, and positive -- to the inside of the wall.
         The boundary is defined by the zero-level isosurface.
     )")
         .def(py::init(&wall_factory::createSDFWall),
-            "state"_a, "name"_a, "sdfFilename"_a, "h"_a = real3{0.25, 0.25, 0.25}, R"(
+             "state"_a, "name"_a, "sdfFilename"_a, "h"_a=real3{0.25, 0.25, 0.25},
+             "margin"_a=real3{5.0_r, 5.0_r, 5.0_r}, R"(
             Args:
                 name: name of the wall
                 sdfFilename: name of the ``.sdf`` file
                 h: resolution of the resampled SDF.
                    In order to have a more accurate SDF representation, the initial function is resampled on a finer grid.
                    The lower this value is, the more accurate the wall will be represented, however, the  more memory it will consume and the slower the execution will be.
+                margin: Additional margin to store on each rank.
+                        This is used to e.g. bounce-back particles that are on the local rank but outside the local domain.
         )");
 
     py::handlers_class< WallWithVelocity<StationaryWallCylinder, VelocityFieldRotate> >(m, "RotatingCylinder", pywall, R"(

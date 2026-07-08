@@ -3,14 +3,14 @@
 #include <mirheo/core/utils/cpu_gpu_defines.h>
 #include <mirheo/core/utils/cuda_common.h>
 #include <mirheo/core/utils/kernel_launch.h>
-#include <mirheo/core/utils/variant.h>
 
 #include <gtest/gtest.h>
 #include <variant/variant.h>
 
+#include <variant>
 #include <vector>
 
-using VarType    = mpark::variant<int, float>;
+using VarType    = std::variant<int, float>;
 using VarTypePtr = variant::variant<int*, float*>;
 
 using namespace mirheo;
@@ -46,7 +46,7 @@ TEST (Variant, cpu)
 
     auto check = [](auto ref, VarType var) -> bool
     {
-        return mpark::visit([&](auto val)
+        return std::visit([&](auto val)
         {
             return ref == eval(val);
         }, var);
@@ -110,6 +110,7 @@ TEST (Variant, gpu)
 
 int main(int argc, char **argv)
 {
+    logger.init(MPI_COMM_NULL, "variant.log", 0);
     testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();
 }

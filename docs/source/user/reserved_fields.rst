@@ -7,6 +7,8 @@
     * "stresses"
     * "densities"
     * "old_positions"
+    * "Q"
+    * "dQdt"
 
 * Reserved object channel fields:
     * "ids"

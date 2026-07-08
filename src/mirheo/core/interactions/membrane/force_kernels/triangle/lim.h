@@ -39,18 +39,30 @@ public:
         \param [in] lscale Scaling length factor, applied to all parameters
     */
     TriangleLimForce(ParametersType p, const Mesh *mesh, mReal lscale) :
-        lscale_(lscale)
+        lscale_(1.0_mr)
     {
         a3_ = p.a3;
         a4_ = p.a4;
         b1_ = p.b1;
         b2_ = p.b2;
 
-        ka_ = p.ka * lscale_ * lscale_;
-        mu_ = p.mu * lscale_ * lscale_;
+        ka_ = p.ka;
+        mu_ = p.mu;
 
-        area0_   = p.totArea0 * lscale_ * lscale_ / mesh->getNtriangles();
+        area0_   = p.totArea0 / mesh->getNtriangles();
         length0_ = math::sqrt(area0_ * 4.0 / math::sqrt(3.0));
+
+        applyLengthScalingFactor(lscale);
+    }
+
+    /// Scale length-dependent parameters.
+    __HD__ void applyLengthScalingFactor(mReal lscale)
+    {
+        lscale_ *= lscale;
+        ka_ *= lscale * lscale;
+        mu_ *= lscale * lscale;
+        area0_ *= lscale * lscale;
+        length0_ *= lscale;
     }
 
     /** \brief Get the reference triangle information
@@ -94,7 +106,7 @@ public:
 
         const mReal3 normalArea2 = cross(x12, x13);
         const mReal area = 0.5_mr * length(normalArea2);
-        const mReal area_inv = 1.0_mr / area;
+        const mReal area_inv = 1.0_mr / max(area, 1e-6_mr);
         const mReal area0_inv = 1.0_mr / eq.a;
 
         const mReal3 derArea  = (0.25_mr * area_inv) * cross(normalArea2, x32);
@@ -143,10 +155,5 @@ private:
     mReal area0_;   ///< only useful when StressFree is false
     mReal lscale_;
 };
-
-/// set type name
-MIRHEO_TYPE_NAME(TriangleLimForce<StressFreeState::Active>, "TriangleLimForce<Active>");
-/// set type name
-MIRHEO_TYPE_NAME(TriangleLimForce<StressFreeState::Inactive>, "TriangleLimForce<Inactive>");
 
 } // namespace mirheo

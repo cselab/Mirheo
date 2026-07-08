@@ -14,13 +14,12 @@ See also :any:`Mirheo.registerBouncer` and :any:`Mirheo.setBouncer`.
 
 Summary
 ========
-.. automodsumm:: _mirheo.Bouncers
+.. automodsumm:: mmirheo.Bouncers
 
 Details
 ========
-.. automodule:: _mirheo.Bouncers
+.. automodule:: mmirheo.Bouncers
    :members:
    :show-inheritance:
    :undoc-members:
    :special-members: __init__
-   

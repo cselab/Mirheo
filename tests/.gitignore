@@ -50,15 +50,16 @@ h5
 /ic/log_00001.log
 /ic/pos.ic.txt
 /ic/vel.ic.txt
+/log/env_var.log
 /md/log_0000?.log
-/md/temperature1.txt
-/md/temperature2.txt
 /md/snapshot/
 /md/stats.csv
+/md/temperature1.txt
+/md/temperature2.txt
 /mdpd/log_00000.log
 /mdpd/log_00001.log
-/mdpd/vcont.csv
 /mdpd/stats.csv
+/mdpd/vcont.csv
 /membrane/log_00000.log
 /membrane/log_00001.log
 /membrane/rbc_mesh.off
@@ -72,6 +73,8 @@ h5
 /object_belonging/log_00000.log
 /object_belonging/pos.inner.txt
 /object_belonging/rbc_mesh.off
+/objects/log_0000?.log
+/objects/stats/
 /plugins/anchor/
 /plugins/force/
 /plugins/log_00000.log
@@ -80,6 +83,7 @@ h5
 /plugins/log_00003.log
 /plugins/msd/
 /plugins/pos.ic.txt
+/plugins/pos.txt
 /plugins/rdf/
 /plugins/stats/
 /plugins/vacf/
@@ -102,6 +106,8 @@ h5
 /restart/restart/
 /restart/restart2/
 /restart/stats/
+/restart/stats.csv
+/restart/vcont.csv
 /rigids/log_00000.log
 /rigids/log_00001.log
 /rigids/log_00002.log
@@ -129,10 +135,10 @@ h5
 /snapshot/log_00001.log
 /snapshot/log_00002.log
 /snapshot/log_00003.log
-/snapshot/stats.csv
 /snapshot/periodic_snapshots/
 /snapshot/snapshot1/
 /snapshot/snapshot2/
+/snapshot/stats.csv
 /stress/log_00000.log
 /stress/log_00001.log
 /stress/pressure.txt
@@ -154,6 +160,9 @@ h5
 /triplewise/log_00014.log
 /triplewise/log_00015.log
 /triplewise/dummy.out.txt
+/vedpd/log_00000.log
+/vedpd/log_00001.log
+/vedpd/stats.csv
 /walls/analytic/log_00000.log
 /walls/analytic/log_00001.log
 /walls/analytic/vcont.csv
@@ -164,5 +173,5 @@ h5
 /walls/sdf/vcont.csv
 /walls/volume/log_00000.log
 /walls/volume/volume.txt
-/walls/wallForceHi.txt
-/walls/wallForceLo.txt
+/walls/wallForceHi.csv
+/walls/wallForceLo.csv

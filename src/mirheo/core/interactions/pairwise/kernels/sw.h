@@ -70,12 +70,6 @@ public:
         return (const HandlerType&) (*this);
     }
 
-    /// \return type name string
-    static std::string getTypeName()
-    {
-        return "PairwiseSW";
-    }
-
 private:
     real epsilon_;
     real sigma_;

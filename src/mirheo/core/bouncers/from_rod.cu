@@ -100,7 +100,7 @@ void BounceFromRod::exec(ParticleVector *pv, CellList *cl, ParticleVectorLocalit
             nCollisions, getCName());
 
     // Step 2, resolve the collisions
-    mpark::visit([&](auto& bounceKernel)
+    std::visit([&](auto& bounceKernel)
     {
         bounceKernel.update(rng_);
 

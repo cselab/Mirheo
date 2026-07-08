@@ -25,6 +25,8 @@ public:
      */
     ObjStatsPlugin(const MirState *state, std::string name, std::string ovName, int dumpEvery);
 
+    ~ObjStatsPlugin();
+
     void setup(Simulation *simulation, const MPI_Comm& comm, const MPI_Comm& interComm) override;
 
     void afterIntegration(cudaStream_t stream) override;
@@ -61,20 +63,24 @@ class ObjStatsDumper : public PostprocessPlugin
 public:
     /** Create a ObjStatsDumper object.
         \param [in] name The name of the plugin.
-        \param [in] path The csv file to dump. Must end with `.csv` or have no extension.
+        \param [in] filename The name of the csv file to dump to.
     */
-    ObjStatsDumper(std::string name, std::string path);
+    ObjStatsDumper(std::string name, std::string filename);
+
     ~ObjStatsDumper();
 
     void deserialize() override;
     void setup(const MPI_Comm& comm, const MPI_Comm& interComm) override;
     void handshake() override;
 
+    void checkpoint(MPI_Comm comm, const std::string& path, int checkpointId) override;
+    void restart   (MPI_Comm comm, const std::string& path) override;
+
 private:
-    std::string path_;
-    int3 nranks3D_;
+    std::string filename_;
 
     bool activated_ = true;
+    bool restarted_ = false;
     MPI_File fout_ = MPI_FILE_NULL;
 };
 

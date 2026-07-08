@@ -22,22 +22,9 @@ public:
      */
     ForceSaverPlugin(const MirState *state, std::string name, std::string pvName);
 
-    /** Load a snapshot of the plugin.
-        \param [in] state The global state of the simulation.
-        \param [in] loader The \c Loader object. Provides load context and unserialization functions.
-        \param [in] config The parameters of the interaction.
-     */
-    ForceSaverPlugin(const MirState *state, Loader& loader, const ConfigObject& config);
-
     void setup(Simulation* simulation, const MPI_Comm& comm, const MPI_Comm& interComm) override;
     bool needPostproc() override;
     void beforeIntegration(cudaStream_t stream) override;
-
-    void saveSnapshotAndRegister(Saver& saver) override;
-
-protected:
-    /// Implementation of snapshot saving. Reusable by potential derived classes.
-    ConfigObject _saveSnapshot(Saver& saver, const std::string& typeName);
 
 private:
     std::string pvName_;

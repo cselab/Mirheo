@@ -47,16 +47,16 @@ void UniformCartesianDumper::handshake()
     // Density is a special channel which is always present
     std::string allNames = numberDensityChannelName;
     channels_.clear();
-    channels_.push_back(init_channel(XDMF::Channel::DataForm::Scalar, numberDensityChannelName));
+    channels_.push_back(init_channel(XDMF::Channel::Scalar{}, numberDensityChannelName));
 
     for (size_t i = 0; i < sizes.size(); ++i)
     {
         allNames += ", " + names[i];
         switch (sizes[i])
         {
-            case 1: channels_.push_back(init_channel(XDMF::Channel::DataForm::Scalar,  names[i])); break;
-            case 3: channels_.push_back(init_channel(XDMF::Channel::DataForm::Vector,  names[i])); break;
-            case 6: channels_.push_back(init_channel(XDMF::Channel::DataForm::Tensor6, names[i])); break;
+            case 1: channels_.push_back(init_channel(XDMF::Channel::Scalar{},  names[i])); break;
+            case 3: channels_.push_back(init_channel(XDMF::Channel::Vector{},  names[i])); break;
+            case 6: channels_.push_back(init_channel(XDMF::Channel::Tensor6{}, names[i])); break;
 
             default:
                 die("Plugin '%s' got %d as a channel '%s' size, expected 1, 3 or 6", getCName(), sizes[i], names[i].c_str());
@@ -79,12 +79,11 @@ static void convert(const std::vector<double> &src, std::vector<real> &dst)
 
 void UniformCartesianDumper::deserialize()
 {
-    MirState::TimeType t;
     MirState::StepType timeStamp;
-    SimpleSerializer::deserialize(data_, t, timeStamp, recvNumberDnsity_, recvContainers_);
+    SimpleSerializer::deserialize(data_, timeStamp, recvNumberDnsity_, recvContainers_);
 
-    debug2("Plugin '%s' will dump right now: simulation time %f, time stamp %lld",
-           getCName(), t, timeStamp);
+    debug2("Plugin '%s' will dump right now: simulation time stamp %lld",
+           getCName(), timeStamp);
 
     convert(recvNumberDnsity_, numberDnsity_);
     channels_[0].data = numberDnsity_.data();
@@ -98,7 +97,7 @@ void UniformCartesianDumper::deserialize()
     }
 
     const std::string fname = path_ + createStrZeroPadded(timeStamp, zeroPadding_);
-    XDMF::write(fname, grid_.get(), channels_, t, cartComm_);
+    XDMF::write(fname, grid_.get(), channels_, cartComm_);
 }
 
 XDMF::Channel UniformCartesianDumper::getChannelOrDie(std::string chname) const

@@ -12,19 +12,65 @@ This is the visible class that is output of the factory function.
    :project: mirheo
    :members:
 
-Implementation
---------------
 
-The factory instantiates one of this templated class.
-See below for the requirements on the kernels.
+Interactions
+------------
 
-.. doxygenclass:: mirheo::PairwiseInteraction
+Here are listed the current available pairwise interactions.
+
+.. doxygenclass:: mirheo::PairwiseDPDInteraction
    :project: mirheo
    :members:
 
-A specific class can be used to compute addtionally the stresses of a given interaction.
+.. doxygenclass:: mirheo::PairwiseViscoElasticDPDInteraction
+   :project: mirheo
+   :members:
 
-.. doxygenclass:: mirheo::PairwiseInteractionWithStress
+.. doxygenclass:: mirheo::PairwiseViscoElasticSmoothVelDPDInteraction
+   :project: mirheo
+   :members:
+
+.. doxygenclass:: mirheo::PairwiseSDPDInteraction
+   :project: mirheo
+   :members:
+
+.. doxygenclass:: mirheo::PairwiseDensityInteraction
+   :project: mirheo
+   :members:
+
+.. doxygenclass:: mirheo::PairwiseLJInteraction
+   :project: mirheo
+   :members:
+
+.. doxygenclass:: mirheo::PairwiseRepulsiveLJInteraction
+   :project: mirheo
+   :members:
+
+.. doxygenclass:: mirheo::PairwiseGrowingRepulsiveLJInteraction
+   :project: mirheo
+   :members:
+
+.. doxygenclass:: mirheo::PairwiseMorseInteraction
+   :project: mirheo
+   :members:
+
+.. doxygenclass:: mirheo::PairwiseNoRandomDPDInteraction
+   :project: mirheo
+   :members:
+
+
+
+
+Implementation
+--------------
+
+A generic pairwise CUDA kernel computes interactions between two :any:`ParticleVector`.
+The kernel is templated and requires a functor describing the interaction forces (see :ref:`dev-interactions-pairwise-kernels`)
+
+Stress computation is optional with compatible interactions.
+A helper class is provided:
+
+.. doxygenclass:: mirheo::StressManager
    :project: mirheo
    :members:
 
@@ -37,8 +83,8 @@ Kernels
 Interface
 ^^^^^^^^^
 
-The :any:`mirheo::PairwiseInteraction` takes a functor that describes a pairwise interaction.
-This functor may be splitted into two parts:
+The kernel functor describes a pairwise interaction.
+It is splitted into two parts:
 
 - a handler, that must be usable on the device.
 - a manager, that may store extra information on the host. For simple interactions, this can be the same as the handler class.
@@ -55,7 +101,7 @@ The interface of the functor must follow the following requirements:
       using ParamsType = <struct that contains the parameters of this functor>
 
 #. A generic constructor from the ``ParamsType`` parameters:
-   
+
    .. code-block:: c++
 
       PairwiseKernelType(real rc, const ParamsType& p, real dt, long seed=42424242);
@@ -66,7 +112,7 @@ The interface of the functor must follow the following requirements:
    .. code-block:: c++
 
       void setup(LocalParticleVector* lpv1, LocalParticleVector* lpv2, CellList* cl1, CellList* cl2, const MirState *state);
-	
+
 #. Handler function (on Host, for manager only)
 
    .. code-block:: c++
@@ -76,7 +122,7 @@ The interface of the functor must follow the following requirements:
 #. Interaction function (output must match with accumulator, see below) (on GPU)
 
    .. code-block:: c++
-      
+
       __D__ <OutputType> operator()(const ParticleType dst, int dstId, const ParticleType src, int srcId) const;
 
 #. :ref:`Accumulator <dev-interactions-pairwise-accumulators>` initializer (on GPU)
@@ -92,16 +138,16 @@ The interface of the functor must follow the following requirements:
 
       __D__ ParticleType read(const ViewType& view, int id) const;
       __D__ ParticleType readNoCache(const ViewType& view, int id) const;
-      
+
       __D__ void readCoordinates(ParticleType& p, const ViewType& view, int id) const;
       __D__ void readExtraData(ParticleType& p, const ViewType& view, int id) const;
-      
+
 #. Interacting checker to discard pairs not within cutoff:
 
    .. code-block:: c++
 
       __D__ bool withinCutoff(const ParticleType& src, const ParticleType& dst) const;
-	
+
 #. Position getter from generic particle type:
 
    .. code-block:: c++
@@ -113,7 +159,6 @@ The interface of the functor must follow the following requirements:
    To implement a new kernel, the following must be done:
    - satisfy the above interface
    - add a corresponding parameter in parameters.h
-   - add it to the variant in parameters.h
    - if necessary, add type traits specialization in type_traits.h
 
 
@@ -143,6 +188,10 @@ Implemented kernels
    :project: mirheo
    :members:
 
+.. doxygenclass:: mirheo::PairwiseMorse
+   :project: mirheo
+   :members:
+
 .. doxygenclass:: mirheo::PairwiseMDPDHandler
    :project: mirheo
    :members:
@@ -151,7 +200,7 @@ Implemented kernels
    :project: mirheo
    :members:
 
-.. doxygenclass:: mirheo::PairwiseNorandomDPD
+.. doxygenclass:: mirheo::PairwiseNoRandomDPD
    :project: mirheo
    :members:
 
@@ -166,6 +215,23 @@ Implemented kernels
 .. doxygenclass:: mirheo::PairwiseSDPD
    :project: mirheo
    :members:
+
+.. doxygenclass:: mirheo::PairwiseViscoElasticDPDHandler
+   :project: mirheo
+   :members:
+
+.. doxygenclass:: mirheo::PairwiseViscoElasticDPD
+   :project: mirheo
+   :members:
+
+.. doxygenclass:: mirheo::PairwiseViscoElasticSmoothVelDPDHandler
+   :project: mirheo
+   :members:
+
+.. doxygenclass:: mirheo::PairwiseViscoElasticSmoothVelDPD
+   :project: mirheo
+   :members:
+
 
 
 The above kernels that output a force can be wrapped by the stress wrapper:
@@ -190,15 +256,19 @@ Fetchers are used to load the correct data needed by the pairwise kernels (e.g. 
    :project: mirheo
    :members:
 
-.. doxygenclass:: mirheo::ParticleFetcherWithVelocity
+.. doxygenclass:: mirheo::ParticleFetcherWithDensity
    :project: mirheo
    :members:
 
-.. doxygenclass:: mirheo::ParticleFetcherWithVelocityAndDensity
+.. doxygenclass:: mirheo::ParticleFetcherWithDensityAndMass
    :project: mirheo
    :members:
 
-.. doxygenclass:: mirheo::ParticleFetcherWithVelocityDensityAndMass
+.. doxygenclass:: mirheo::ParticleFetcherWithPolChainVectors
+   :project: mirheo
+   :members:
+
+.. doxygenclass:: mirheo::ParticleFetcherWithPolChainVectorsAndSmoothVel
    :project: mirheo
    :members:
 
@@ -246,6 +316,10 @@ The following accumulators are currently implemented:
    :members:
 
 .. doxygenclass:: mirheo::ForceAccumulator
+   :project: mirheo
+   :members:
+
+.. doxygenclass:: mirheo::ForceDerPolChainAccumulator
    :project: mirheo
    :members:
 

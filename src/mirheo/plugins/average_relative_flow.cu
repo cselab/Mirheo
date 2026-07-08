@@ -241,7 +241,7 @@ void AverageRelative3D::serializeAndSend(cudaStream_t stream)
 
     debug2("Plugin '%s' is now packing the data", getCName());
     _waitPrevSend();
-    SimpleSerializer::serialize(sendBuffer_, getState()->currentTime, timeStamp, localNumberDensity_, localChannels_);
+    SimpleSerializer::serialize(sendBuffer_, timeStamp, localNumberDensity_, localChannels_);
     _send(sendBuffer_);
 }
 

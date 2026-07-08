@@ -45,7 +45,7 @@ public:
         \param [in] label The name of the task
         \return the task id if it exists, or \c invalidTaskId if it doesn't
     */
-    TaskID getTaskId(const std::string& label);
+    TaskID getTaskId(const std::string& label) const;
 
     /** \brief Retrieve the task id of the task with a given label
         \param [in] label The name of the task

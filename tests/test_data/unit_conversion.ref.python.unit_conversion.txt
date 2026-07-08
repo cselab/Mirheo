@@ -1,3 +1,0 @@
-dt = -1
-domainGlobalSize = [20, 30, 40]
-kBT = 2.25

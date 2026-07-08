@@ -13,9 +13,6 @@
 [submodule "units/extern/googletest"]
 	path = units/extern/googletest
 	url = https://github.com/google/googletest.git
-[submodule "src/extern/variant"]
-	path = src/extern/variant
-	url = https://github.com/mpark/variant.git
 [submodule "src/extern/cuda_variant"]
 	path = src/extern/cuda_variant
 	url = https://github.com/cselab/cuda_variant.git

@@ -78,7 +78,7 @@ static Average3D::ChannelType getChannelType(Stress) {return Average3D::ChannelT
 
 static Average3D::ChannelType getChannelTypeFromChannelDesc(const std::string& name, const DataManager::ChannelDescription& desc)
 {
-    auto type = mpark::visit([](auto *pinnedBufferPtr)
+    auto type = std::visit([](auto *pinnedBufferPtr)
     {
         using T = typename std::remove_pointer<decltype(pinnedBufferPtr)>::type::value_type;
         return average_3D_details::getChannelType(T());
@@ -262,7 +262,7 @@ void Average3D::serializeAndSend(cudaStream_t stream)
 
     debug2("Plugin '%s' is now packing the data", getCName());
     _waitPrevSend();
-    SimpleSerializer::serialize(sendBuffer_, getState()->currentTime, timeStamp, accumulatedNumberDensity_, accumulatedAverage_);
+    SimpleSerializer::serialize(sendBuffer_, timeStamp, accumulatedNumberDensity_, accumulatedAverage_);
     _send(sendBuffer_);
 }
 
@@ -273,7 +273,8 @@ void Average3D::handshake()
     for (auto t : channelsInfo_.types)
         sizes.push_back(getNcomponents(t));
 
-    SimpleSerializer::serialize(sendBuffer_, nranks3D_, rank3D_, resolution_, binSize_, sizes, channelsInfo_.names, numberDensityChannelName_);
+    SimpleSerializer::serialize(sendBuffer_, nranks3D_, rank3D_, resolution_, binSize_, sizes,
+                                channelsInfo_.names, numberDensityChannelName_);
     _send(sendBuffer_);
 }
 

@@ -17,7 +17,7 @@ struct VisitorToStr
 
 std::string typeDescriptorToString(const TypeDescriptor& desc)
 {
-    return mpark::visit(VisitorToStr(), desc);
+    return std::visit(VisitorToStr(), desc);
 }
 
 TypeDescriptor stringToTypeDescriptor(const std::string& str)

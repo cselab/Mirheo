@@ -6,15 +6,9 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 if (MIR_BUILD_PYTHON_MODULE)
   # Add pybind11
-  if (NOT TARGET pybind11)
+  if (NOT TARGET pybind11 AND NOT TARGET pybind11::headers)
     add_subdirectory(extern/pybind11)
   endif()
-  set(PYBIND11_CPP_STANDARD -std=c++14)
-endif()
-
-# Add mpark/variant
-if (NOT TARGET mpark_variant)
-    add_subdirectory(extern/variant)
 endif()
 
 # Add pugixml
@@ -33,11 +27,12 @@ find_package(CUDA 9.2 REQUIRED)
 include(mpi)
 set(CMAKE_CUDA_HOST_LINK_LAUNCHER ${MPI_CXX_COMPILER})
 
-# **********************
-# Optional packages
 include(hdf5 REQUIRED)
-find_package(LIBBFD REQUIRED)
-# **********************
+
+if (MIR_ENABLE_STACKTRACE)
+  find_package(LIBBFD REQUIRED)
+endif()
+
 
 # Setup compiler flags
 

@@ -34,17 +34,16 @@ __global__ void computeAreaAndVolume(OVviewWithAreaVolume view, MeshView mesh)
     a_v = warpReduce( a_v, [] (real a, real b) { return a+b; } );
 
     if (laneId() == 0)
-        atomicAdd(&view.area_volumes[objId], a_v);
+    {
+        atomicAdd(&view.area_volumes[objId].x, a_v.x);
+        atomicAdd(&view.area_volumes[objId].y, a_v.y);
+    }
 }
 } // namespace base_membrane_interaction_kernels
 
 
 BaseMembraneInteraction::BaseMembraneInteraction(const MirState *state, const std::string& name) :
     Interaction(state, name)
-{}
-
-BaseMembraneInteraction::BaseMembraneInteraction(const MirState *state, Loader& loader, const ConfigObject& config) :
-    Interaction(state, loader, config)
 {}
 
 BaseMembraneInteraction::~BaseMembraneInteraction() = default;

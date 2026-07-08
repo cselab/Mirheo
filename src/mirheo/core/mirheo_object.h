@@ -13,10 +13,8 @@ namespace mirheo
 {
 
 /** \brief Base class for all the objects of Mirheo
-
-    Each object has a name and provides must interface for checkpoint / restart mechanism.
  */
-class MirObject : public AutoObjectSnapshotTag
+class MirObject
 {
 public:
     /** \brief Construct a MirObject object.
@@ -44,11 +42,6 @@ public:
      */
     virtual void restart(MPI_Comm comm, const std::string& path);
 
-    /** \brief Dump object data, create config and register the object.
-        \param [in,out] saver The \c Saver object. Provides save context and serialization functions.
-      */
-    virtual void saveSnapshotAndRegister(Saver& saver);
-
     /** \brief Helper function to create file name for checkpoint/restart.
         \param [in] path The checkpoint/restart directory.
         \param [in] identifier An additional identifier, ignored if empty.
@@ -75,14 +68,6 @@ public:
     */
     void createCheckpointSymlink(MPI_Comm comm, const std::string& path, const std::string& identifier, const std::string& extension, int checkpointId) const;
 
-protected:
-    /** Base snapshot function. Sets the `__category` and `__type` special fields.
-        \param [in,out] saver The \c Saver object. Provides save context and serialization functions.
-        \param [in] category The type category (e.g. "Integrator", "Plugin"...).
-        \param [in] typeName The name of the type being saved.
-      */
-    ConfigObject _saveSnapshot(Saver& saver, const std::string& category, const std::string& typeName);
-
 private:
     const std::string name_; ///< Name of the object.
 };
@@ -98,13 +83,6 @@ public:
         \param [in] state State of the simulation.
      */
     MirSimulationObject(const MirState *state, const std::string& name);
-
-    /** \brief Base constructor. Read the name object from the config.
-        \param [in] state The global state of the system.
-        \param [in] loader The \c Loader object. Provides load context and unserialization functions.
-        \param [in] config The object parameters.
-     */
-    MirSimulationObject(const MirState *state, Loader& loader, const ConfigObject& config);
 
     ~MirSimulationObject();
 

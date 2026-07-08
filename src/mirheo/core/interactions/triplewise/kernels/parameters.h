@@ -2,8 +2,8 @@
 #pragma once
 
 #include <mirheo/core/datatypes.h>
-#include <mirheo/core/utils/reflection.h>
-#include <mirheo/core/utils/variant.h>
+
+#include <variant>
 
 namespace mirheo
 {
@@ -12,18 +12,16 @@ namespace mirheo
 class SW3;
 class TriplewiseDummy;
 
-
+/// Stillinger-Weber (three-body term) parameters
 struct SW3Params
 {
-    using KernelType = SW3;
-    real lambda;
-    real epsilon;
-    real theta;
-    real gamma;
-    real sigma;
-
+    using KernelType = SW3; ///< the corresponding kernel
+    real lambda;  ///< strength of the three-body term
+    real epsilon; ///< energy scale
+    real theta;   ///< equilibrium angle
+    real gamma;   ///< decay length scale of the angular term
+    real sigma;   ///< length scale
 };
-MIRHEO_MEMBER_VARS(SW3Params, lambda, epsilon, theta, gamma, sigma);
 
 /// parameters of the dummy interaction
 struct DummyParams
@@ -31,10 +29,8 @@ struct DummyParams
     using KernelType = TriplewiseDummy; ///< the corresponding kernel
     real epsilon;   ///< force coefficient
 };
-MIRHEO_MEMBER_VARS(DummyParams, epsilon);
-
 
 /// variant of all possible triplewise interactions
-using VarTriplewiseParams = mpark::variant<SW3Params, DummyParams>;
+using VarTriplewiseParams = std::variant<SW3Params, DummyParams>;
 
 } // namespace mirheo

@@ -1,9 +1,11 @@
 // Copyright 2020 ETH Zurich. All Rights Reserved.
-#include "bindings.h"
+#include "particle_vectors.h"
 #include "class_wrapper.h"
+#include "cuda_array_interface.h"
 
 #include <mirheo/core/mesh/membrane.h>
 #include <mirheo/core/mesh/mesh.h>
+#include <mirheo/core/pvs/chain_vector.h>
 #include <mirheo/core/pvs/membrane_vector.h>
 #include <mirheo/core/pvs/object_vector.h>
 #include <mirheo/core/pvs/particle_vector.h>
@@ -13,11 +15,148 @@
 
 #include <pybind11/stl.h>
 
-namespace mirheo
-{
+#include <array>
 
 namespace py = pybind11;
 using namespace pybind11::literals;
+
+
+namespace mirheo
+{
+
+namespace py_types
+{
+
+template <class T, int Dimensions>
+using VectorOfTypeN = std::vector<std::array<T, Dimensions>>;
+
+template <int Dimensions>
+using VectorOfRealN = VectorOfTypeN<real, Dimensions>;
+
+using VectorOfReal3 = VectorOfRealN<3>;
+
+template <int Dimensions>
+using VectorOfIntN = VectorOfTypeN<int, Dimensions>;
+
+using VectorOfInt3 = VectorOfIntN<3>;
+
+
+} // namespace py_types
+
+
+/** Download the positions and velocities of the pv from device to host and
+    return a python-compatible list of the per particle global indices.
+ */
+static std::vector<int64_t> getPerParticleIndices(ParticleVector *pv, cudaStream_t stream = defaultStream)
+{
+    auto& pos = pv->local()->positions();
+    auto& vel = pv->local()->velocities();
+    pos.downloadFromDevice(stream, ContainersSynch::Asynch);
+    vel.downloadFromDevice(stream);
+
+    std::vector<int64_t> indices(pos.size());
+
+    for (size_t i = 0; i < pos.size(); i++)
+    {
+        const Particle p (pos[i], vel[i]);
+        indices[i] = p.getId();
+    }
+
+    return indices;
+}
+
+/** Download the positions of the pv from device to host and return a python-compatible list of it (in global coordinates).
+ */
+static py_types::VectorOfReal3 getPerParticlePositions(ParticleVector *pv, cudaStream_t stream = defaultStream)
+{
+    auto& pos = pv->local()->positions();
+    pos.downloadFromDevice(stream);
+
+    py_types::VectorOfReal3 pyPositions;
+    pyPositions.reserve(pos.size());
+
+    const auto& domain = pv->getState()->domain;
+    for (const real4 r4 : pos)
+    {
+        const real3 r = domain.local2global(make_real3(r4));
+        pyPositions.push_back({r.x, r.y, r.z});
+    }
+
+    return pyPositions;
+}
+
+/** Download the velocities of the pv from device to host and return a python-compatible list of it.
+ */
+static py_types::VectorOfReal3 getPerParticleVelocities(ParticleVector *pv, cudaStream_t stream = defaultStream)
+{
+    auto& vel = pv->local()->velocities();
+    vel.downloadFromDevice(stream);
+
+    py_types::VectorOfReal3 pyVelocities;
+    pyVelocities.reserve(vel.size());
+
+    for (const real4 v : vel)
+        pyVelocities.push_back({v.x, v.y, v.z});
+
+    return pyVelocities;
+}
+
+/** Download the forces of the pv from device to host and return a python-compatible list of it.
+ */
+static py_types::VectorOfReal3 getPerParticleForces(ParticleVector *pv, cudaStream_t stream = defaultStream)
+{
+    HostBuffer<Force> forces;
+    forces.copy(pv->local()->forces(), stream);
+
+    py_types::VectorOfReal3 pyForces;
+    pyForces.reserve(forces.size());
+
+    for (const Force f : forces)
+        pyForces.push_back({f.f.x, f.f.y, f.f.z});
+
+    return pyForces;
+}
+
+
+
+
+
+/** Get the vertices of a mesh.
+   \return the list of vertices of the given mesh on host.
+ */
+static py_types::VectorOfReal3 getPyVerticesMesh(const Mesh *mesh)
+{
+    // vertices are not changing during the simulation, we assume here that
+    // the data is already on the host.
+    const PinnedBuffer<real4>& vertices = mesh->getVertices();
+
+    py_types::VectorOfReal3 pyVertices;
+    pyVertices.reserve(vertices.size());
+
+    for (const real4 r : vertices)
+        pyVertices.push_back({r.x, r.y, r.z});
+
+    return pyVertices;
+}
+
+/** \return the list of faces of the given mesh on host.
+ */
+static py_types::VectorOfInt3 getPyFacesMesh(const Mesh *mesh)
+{
+    // faces are not changing during the simulation, we assume here that
+    // the data is already on the host.
+    const PinnedBuffer<int3>& faces = mesh->getFaces();
+    py_types::VectorOfInt3 pyFaces;
+    pyFaces.reserve(faces.size());
+
+    for (const int3 f : faces)
+        pyFaces.push_back({f.x, f.y, f.z});
+
+    return pyFaces;
+}
+
+
+
 
 void exportParticleVectors(py::module& m)
 {
@@ -40,20 +179,25 @@ void exportParticleVectors(py::module& m)
                 name: name of the created PV
                 mass: mass of a single particle
         )")
-        //
-        .def("get_indices", &ParticleVector::getIndices_vector, R"(
+        .def_property_readonly("local", py::overload_cast<>(&ParticleVector::local), R"(
+            The local LocalParticleVector instance, the storage of local particles.
+        )", py::return_value_policy::reference_internal)
+        .def_property_readonly("halo", py::overload_cast<>(&ParticleVector::halo), R"(
+            The halo LocalParticleVector instance, the storage of halo particles.
+        )", py::return_value_policy::reference_internal)
+        .def("get_indices", [](ParticleVector *pv) {return getPerParticleIndices(pv);}, R"(
             Returns:
                 A list of unique integer particle identifiers
         )")
-        .def("getCoordinates", &ParticleVector::getCoordinates_vector, R"(
+        .def("getCoordinates", [](ParticleVector *pv) {return getPerParticlePositions(pv);}, R"(
             Returns:
                 A list of :math:`N \times 3` reals: 3 components of coordinate for every of the N particles
         )")
-        .def("getVelocities",  &ParticleVector::getVelocities_vector, R"(
+        .def("getVelocities", [](ParticleVector *pv) {return getPerParticleVelocities(pv);}, R"(
             Returns:
                 A list of :math:`N \times 3` reals: 3 components of velocity for every of the N particles
         )")
-        .def("getForces",      &ParticleVector::getForces_vector, R"(
+        .def("getForces", [](ParticleVector *pv) {return getPerParticleForces(pv);}, R"(
             Returns:
                 A list of :math:`N \times 3` reals: 3 components of force for every of the N particles
         )")
@@ -75,6 +219,8 @@ void exportParticleVectors(py::module& m)
                 values: A list of :math:`N \times 3` reals: 3 components of coordinate for every of the N particles
         )");
 
+    pypv.attr("MARK_VALUE") = (real)Real3_int::mark_val;
+
     py::handlers_class<Mesh> pymesh(m, "Mesh", R"(
         Internally used class for describing a simple triangular mesh
     )");
@@ -94,10 +240,10 @@ void exportParticleVectors(py::module& m)
             faces:    connectivity: one triangle per entry, each integer corresponding to the vertex indices
 
     )")
-        .def("getVertices", &Mesh::getPyVertices, R"(
+        .def("getVertices", [](const Mesh *mesh) {return getPyVerticesMesh(mesh);}, R"(
         returns the vertex coordinates of the mesh.
     )")
-        .def("getFaces", &Mesh::getPyFaces, R"(
+        .def("getFaces", [](const Mesh *mesh) {return getPyFacesMesh(mesh);}, R"(
         returns the vertex indices for each triangle of the mesh.
     )");
 
@@ -148,6 +294,27 @@ void exportParticleVectors(py::module& m)
             In case of interactions with other :any:`ParticleVector`, the extents of the objects must be smaller than a subdomain size. The code only issues a run time warning but it is the responsibility of the user to ensure this condition for correctness.
 
     )");
+
+    pyov.def_property_readonly("local", py::overload_cast<>(&ObjectVector::local), R"(
+            The local LocalObjectVector instance, the storage of local objects.
+        )", py::return_value_policy::reference_internal);
+
+    pyov.def_property_readonly("halo", py::overload_cast<>(&ObjectVector::halo), R"(
+            The halo LocalObjectVector instance, the storage of halo objects.
+        )", py::return_value_policy::reference_internal);
+
+
+
+    py::handlers_class<ChainVector> (m, "ChainVector", pyov, R"(
+        Object Vector representing chain of particles.
+    )")
+        .def(py::init<const MirState*, std::string, real, int>(),
+             "state"_a, "name"_a, "mass"_a, "chain_length"_a, R"(
+            Args:
+                name: name of the created PV
+                mass: mass of a single particle
+                chain_length: number of particles per chain
+        )");
 
     py::handlers_class<MembraneVector> (m, "MembraneVector", pyov, R"(
         Membrane is an Object Vector representing cell membranes.

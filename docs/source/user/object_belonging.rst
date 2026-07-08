@@ -14,19 +14,15 @@ Object belonging checkers serve two purpooses:
        If one of the PVs was specified as "none", the erroneous particles will be deleted from the simulation.
 
 See also :any:`Mirheo.registerObjectBelongingChecker` and :any:`Mirheo.applyObjectBelongingChecker`.
-       
+
 Summary
 ========
-.. automodsumm:: _mirheo.BelongingCheckers
+.. automodsumm:: mmirheo.BelongingCheckers
 
 Details
 ========
-.. automodule:: _mirheo.BelongingCheckers
+.. automodule:: mmirheo.BelongingCheckers
    :members:
    :show-inheritance:
    :undoc-members:
    :special-members: __init__
-
-
-
- 

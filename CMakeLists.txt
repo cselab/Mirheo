@@ -19,6 +19,11 @@ if(POLICY CMP0074)
   cmake_policy(SET CMP0074 NEW)
 endif()
 
+if(POLICY CMP0148)
+  cmake_policy(SET CMP0148 NEW)
+  set(PYBIND11_FINDPYTHON ON)
+endif()
+
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 # ***********************
@@ -30,6 +35,9 @@ option(MIR_BUILD_TESTS         "Build mirheo unit tests"           OFF)
 option(MIR_ENABLE_LTO          "enable link time optimization"     OFF)
 option(MIR_ENABLE_SANITIZER    "enable ub sanitizer"               OFF)
 option(MIR_PROFILE_COMPILATION "print compilation profiling info"  OFF)
+option(MIR_ENABLE_STACKTRACE   "print a stacktrace when failing"   ON )
+
+set(mir_definitions "")
 
 include(options)
 include(version)

@@ -18,18 +18,18 @@ class CellList;
 
 /// a GPU compatible functor that computes DPD interactions without fluctuations.
 /// Used in unit tests
-class PairwiseNorandomDPD : public PairwiseKernel, public ParticleFetcherWithVelocity
+class PairwiseNoRandomDPD : public PairwiseKernel, public ParticleFetcher
 {
 public:
 
     using ViewType     = PVview;   ///< compatible view type
     using ParticleType = Particle; ///< compatible particle type
-    using HandlerType  = PairwiseNorandomDPD;  ///< handler type corresponding to this object
+    using HandlerType  = PairwiseNoRandomDPD;  ///< handler type corresponding to this object
     using ParamsType   = NoRandomDPDParams; ///< parameters that are used to create this object
 
     /// constructor
-    PairwiseNorandomDPD(real rc, real a, real gamma, real kBT, real power) :
-        ParticleFetcherWithVelocity(rc),
+    PairwiseNoRandomDPD(real rc, real a, real gamma, real kBT, real power) :
+        ParticleFetcher(rc),
         a_(a),
         gamma_(gamma),
         kBT_(kBT),
@@ -38,16 +38,17 @@ public:
     {}
 
     /// Generic constructor
-    PairwiseNorandomDPD(real rc, const ParamsType& p, long seed=42424242) :
-        PairwiseNorandomDPD(rc, p.a, p.gamma, p.kBT, p.power)
+    PairwiseNoRandomDPD(real rc, const ParamsType& p, __UNUSED long seed=42424242) :
+        PairwiseNoRandomDPD(rc, p.a, p.gamma, p.kBT, p.power)
     {}
 
     /// evaluate the force
-    __D__ inline real3 operator()(const ParticleType dst, int dstId, const ParticleType src, int srcId) const
+    __HD__ inline real3 operator()(const ParticleType dst, __UNUSED int dstId, const ParticleType src, __UNUSED int srcId) const
     {
         const real3 dr = dst.r - src.r;
         const real rij2 = dot(dr, dr);
-        if (rij2 > rc2_) return make_real3(0.0_r);
+        if (rij2 > rc2_ || rij2 < 1e-6_r)
+            return make_real3(0.0_r);
 
         const real invrij = math::rsqrt(rij2);
         const real rij = rij2 * invrij;
@@ -81,13 +82,6 @@ public:
                const MirState *state) override
     {
         sigma_ = math::sqrt(2 * gamma_ * kBT_ / state->getDt());
-    }
-
-
-    /// \return type name string
-    static std::string getTypeName()
-    {
-        return "PairwiseNorandomDPD";
     }
 
 protected:

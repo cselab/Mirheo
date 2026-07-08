@@ -36,8 +36,6 @@ private:
     real cSq_;  ///< speed of sound squared
     real rho0_; ///< reference mass density
 };
-/// set type name
-MIRHEO_TYPE_NAME_AUTO(LinearPressureEOS);
 
 
 /// Compute pressure from density
@@ -71,7 +69,5 @@ private:
     real p0_;      ///< pressure magnitude
     real invRhor_; ///< inverse of reference mass density
 };
-/// set type name
-MIRHEO_TYPE_NAME_AUTO(QuasiIncompressiblePressureEOS);
 
 } // namespace mirheo

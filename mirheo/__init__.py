@@ -34,13 +34,9 @@ class PintUnitsConverter:
         ]
         ureg.load_definitions(definitions)
         self.ureg = ureg
-        self.unit_conversion = UnitConversion(
-                ureg(mirL).m_as('m'),
-                ureg(mirT).m_as('s'),
-                ureg(mirM).m_as('kg'))
 
     def __call__(self, value):
-        """Strip of all units using the Mirheo unit system as a reference.
+        """Strip off all units using the Mirheo unit system as a reference.
 
         All unrecognized data types will be returned as is.
         """
@@ -51,7 +47,8 @@ class PintUnitsConverter:
         if cls is ureg.Quantity:
             # The complicated (and quite expensive) procedure of changing an
             # arbitrary quantity to the given unit system... We cannot use
-            # .m_as() as we don't know the exact quantity of the value.
+            # .m_as() directly as we would need to know the corresponding unit
+            # in Mirheo's unit system.
             old = ureg.default_system
             try:
                 ureg.default_system = self.UNIT_SYSTEM_NAME
@@ -133,8 +130,6 @@ def decorate_coordinator(f):
     @functools.wraps(f)
     def wrapper(self, *args, **kwargs):
         global __coordinator
-        if __unit_converter and 'units' not in kwargs:
-            kwargs['units'] = __unit_converter.unit_conversion
         f(self, *args, **kwargs)
 
         if __coordinator is not None and  __coordinator() is not None:
@@ -178,17 +173,21 @@ def decorate_plugins(f):
 
 # Make MPI abort the program if an exception occurs
 # https://groups.google.com/forum/#!topic/mpi4py/RovYzJ8qkbc
-def handle_exception(exc_type, exc_value, exc_traceback):
-    sys.__excepthook__(exc_type, exc_value, exc_traceback)
-    sys.stdout.flush()
-    sys.stderr.flush()
-    if __coordinator is not None and  __coordinator() is not None:
-        abort()
+def make_excepthook(old_excepthook):
+    def excepthook(exc_type, exc_value, exc_traceback):
+        old_excepthook(exc_type, exc_value, exc_traceback)
+        sys.stdout.flush()
+        sys.stderr.flush()
+        if __coordinator is not None and  __coordinator() is not None:
+            abort()
+
+    return excepthook
+
 
 def __init__():
     # Setup exception handling
-    sys.excepthook = handle_exception
-    
+    sys.excepthook = make_excepthook(sys.excepthook)
+
     # Wrap everything except for plugins and non-GPU stuff
     # Make the __init__ functions return None if we are not a compute task
     nonGPU_names  = [['Interactions', 'MembraneParameters'],

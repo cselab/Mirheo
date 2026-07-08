@@ -2,8 +2,7 @@
 #pragma once
 
 #include <mirheo/core/field/from_file.h>
-#include <mirheo/core/utils/config.h>
-#include <mirheo/core/utils/reflection.h>
+
 #include <memory>
 
 namespace mirheo
@@ -17,8 +16,9 @@ public:
         \param [in] state Simulation state
         \param [in] sdfFileName The input file name
         \param [in] sdfH The grid spacing
+        \param [in] margin Additional margin to store in each rank; useful to bounce-back local particles.
      */
-    StationaryWallSDF(const MirState *state, std::string sdfFileName, real3 sdfH);
+    StationaryWallSDF(const MirState *state, std::string sdfFileName, real3 sdfH, real3 margin);
     /// Move ctor.
     StationaryWallSDF(StationaryWallSDF&&);
 
@@ -29,15 +29,10 @@ public:
     void setup(MPI_Comm& comm, DomainInfo domain);
 
     /// Get a handler of the shape representation usable on the device
-    const FieldDeviceHandler& handler() const;
+    const ScalarFieldDeviceHandler& handler() const;
 
 private:
-    std::unique_ptr<FieldFromFile> impl_;
+    std::unique_ptr<ScalarFieldFromFile> impl_;
 };
-
-MIRHEO_TYPE_NAME_AUTO(StationaryWallSDF);
-
-template <>
-struct TypeLoadSave<StationaryWallSDF> : TypeLoadSaveNotImplemented<StationaryWallSDF> { };
 
 } // namespace mirheo

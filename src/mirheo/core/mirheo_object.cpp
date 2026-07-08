@@ -2,7 +2,6 @@
 #include "mirheo_object.h"
 
 #include <mirheo/core/logger.h>
-#include <mirheo/core/utils/config.h>
 #include <mirheo/core/utils/path.h>
 
 namespace mirheo
@@ -21,25 +20,6 @@ MirObject::~MirObject()
 
 void MirObject::checkpoint(__UNUSED MPI_Comm comm, __UNUSED const std::string& path, __UNUSED int checkpointId) {}
 void MirObject::restart   (__UNUSED MPI_Comm comm, __UNUSED const std::string& path) {}
-
-void MirObject::saveSnapshotAndRegister(Saver& saver)
-{
-    // This will always trigger a /function not implemented/ runtime error,
-    // because MirObject is effectively an abstract class.
-    saver.registerObject<MirObject>(
-            this, _saveSnapshot(saver, "UnknownCategory", "MirObject"));
-}
-
-ConfigObject MirObject::_saveSnapshot(Saver& saver, const std::string& category, const std::string& typeName)
-{
-    ConfigObject config;
-    // "Unsafe" == skip checking whether the key is already in use.
-    config.unsafe_insert("__category", saver(category));
-    config.unsafe_insert("__type",     saver(typeName));
-    config.unsafe_insert("name",       saver(name_));
-    return config;
-}
-
 
 static void appendIfNonEmpty(std::string& base, const std::string& toAppend)
 {
@@ -92,9 +72,6 @@ void MirObject::createCheckpointSymlink(MPI_Comm comm, const std::string& path, 
 MirSimulationObject::MirSimulationObject(const MirState *state, const std::string& name) :
     MirObject(name),
     state_(state)
-{}
-MirSimulationObject::MirSimulationObject(const MirState *state, Loader&, const ConfigObject& config) :
-    MirSimulationObject(state, config["name"])
 {}
 
 MirSimulationObject::~MirSimulationObject() = default;

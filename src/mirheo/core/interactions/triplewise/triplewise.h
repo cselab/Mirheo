@@ -9,8 +9,6 @@
 #include <mirheo/core/pvs/object_vector.h>
 #include <mirheo/core/pvs/particle_vector.h>
 #include <mirheo/core/pvs/views/pv.h>
-#include <mirheo/core/snapshot.h>
-#include <mirheo/core/utils/config.h>
 #include <mirheo/core/utils/cuda_common.h>
 #include <mirheo/core/utils/kernel_launch.h>
 
@@ -44,22 +42,8 @@ public:
     TriplewiseInteraction(const MirState *state, const std::string& name, real rc,
                         KernelParams params, long seed = 42424242) :
         BaseTriplewiseInteraction(state, name, rc),
-        kernel_{rc, params, seed},
-        params_{params}
+        kernel_{rc, params, seed}
     {}
-
-    /** \brief Constructs a TriplewiseInteraction object from a snapshot.
-        \param [in] state The global state of the system
-        \param [in] loader The \c Loader object. Provides load context and unserialization functions.
-        \param [in] config The parameters of the interaction.
-     */
-    TriplewiseInteraction(const MirState *state, Loader& loader, const ConfigObject& config) :
-        TriplewiseInteraction(state, config["name"], config["rc"],
-                              loader.load<KernelParams>(config["params"]), 42424242)
-    {
-        long seed = 42424242;
-        warn("NOTE: Seed not serialized, resetting it to %ld!", seed);
-    }
 
     void setPrerequisites(ParticleVector *pv1, ParticleVector *pv2, ParticleVector *pv3,
                           CellList *cl1, CellList *cl2, CellList *cl3) override
@@ -87,7 +71,7 @@ public:
     {
         const bool isov1 = dynamic_cast<ObjectVector *>(pv1) != nullptr;
         const bool isov2 = dynamic_cast<ObjectVector *>(pv2) != nullptr;
-        const bool isov3 = dynamic_cast<ObjectVector *>(pv2) != nullptr;
+        const bool isov3 = dynamic_cast<ObjectVector *>(pv3) != nullptr;
 
         if (isov1 || isov2 || isov3)
             die("3-body force with ObjectVectors not implemented.");
@@ -163,30 +147,6 @@ public:
 
         check(fin.good());
         check( kernel_.readState(fin) );
-    }
-
-    /// \return A string that describes the type of this object
-    static std::string getTypeName()
-    {
-        return constructTypeName("TriplewiseInteraction", 1, TriplewiseKernel::getTypeName().c_str());
-    }
-
-    void saveSnapshotAndRegister(Saver& saver) override
-    {
-        saver.registerObject<TriplewiseInteraction>(
-                this, _saveSnapshot(saver, getTypeName()));
-    }
-
-protected:
-    /** \brief Serialize raw parameters of the kernel.
-        \param [in,out] saver The \c Saver object. Provides save context and serialization functions.
-        \param [in] typeName The name of the type being saved.
-    */
-    ConfigObject _saveSnapshot(Saver& saver, const std::string& typeName)
-    {
-        ConfigObject config = BaseTriplewiseInteraction::_saveSnapshot(saver, typeName);
-        config.emplace("params", saver(params_));
-        return config;
     }
 
 private:
@@ -274,7 +234,6 @@ private:
 
 private:
     TriplewiseKernel kernel_;
-    KernelParams params_;
 };
 
 } // namespace mirheo

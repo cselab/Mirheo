@@ -68,6 +68,11 @@ Their output is generally much lighter than dump plugins.
 The prefered format is csv, to allow clean postprocessing from e.g. python.
 
 
+.. doxygenclass:: mirheo::ExponentialMovingAveragePlugin
+   :project: mirheo
+   :members:
+
+
 .. doxygenclass:: mirheo::MsdPlugin
    :project: mirheo
    :members:
@@ -141,6 +146,18 @@ These plugins add more functionalities to the simulation.
    :project: mirheo
    :members:
 
+.. doxygenclass:: mirheo::AddFourRollMillForcePlugin
+   :project: mirheo
+   :members:
+
+.. doxygenclass:: mirheo::AddReversePoiseuilleForcePlugin
+   :project: mirheo
+   :members:
+
+.. doxygenclass:: mirheo::AddSinusoidalForcePlugin
+   :project: mirheo
+   :members:
+
 
 .. doxygenclass:: mirheo::AddTorquePlugin
    :project: mirheo
@@ -160,8 +177,11 @@ These plugins add more functionalities to the simulation.
    :project: mirheo
    :members:
 
-
 .. doxygenclass:: mirheo::DensityControlPlugin
+   :project: mirheo
+   :members:
+
+.. doxygenclass:: mirheo::ExternalMagneticTorquePlugin
    :project: mirheo
    :members:
 
@@ -195,7 +215,7 @@ These plugins add more functionalities to the simulation.
    :members:
 
 
-.. doxygenclass:: mirheo::MagneticOrientationPlugin
+.. doxygenclass:: mirheo::MagneticDipoleInteractionsPlugin
    :project: mirheo
    :members:
 

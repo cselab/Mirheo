@@ -9,14 +9,12 @@ Pairwise short-range interactions are currently supported, and membrane forces.
 
 Summary
 ========
-.. automodsumm:: _mirheo.Interactions
+.. automodsumm:: mmirheo.Interactions
 
 Details
 ========
-.. automodule:: _mirheo.Interactions
+.. automodule:: mmirheo.Interactions
    :members:
    :show-inheritance:
    :undoc-members:
    :special-members: __init__
-      
- 

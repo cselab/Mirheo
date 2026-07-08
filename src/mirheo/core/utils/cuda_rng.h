@@ -26,12 +26,12 @@ namespace mirheo
 
 #ifndef __NVCC__
 /// fused multiply - add, single precision
-float __fmaf_rz(float x, float y, float z)
+inline float __fmaf_rz(float x, float y, float z)
 {
     return x*y + z;
 }
 /// fused multiply - add, double precision
-double __fma_rz(double x, double y, double z)
+inline double __fma_rz(double x, double y, double z)
 {
     return x*y + z;
 }
@@ -59,7 +59,7 @@ inline __D__ real rem( real r ) {
     return r - math::floor( r );
 }
 
-// FMA wrapper for the convenience of switching rouding modes
+// FMA wrapper for the convenience of switching rounding modes
 inline __D__ float FMA( float x, float y, float z ) {
     return __fmaf_rz( x, y, z );
 }
@@ -73,8 +73,8 @@ inline __D__ double FMA( double x, double y, double z ) {
 // <1> : 1 FMA + 1 MUL
 template<int N> inline __D__ real __logistic_core( real x )
 {
-    real x2 = x * x;
-    real r = FMA( FMA( 8.0_r, x2, -8.0_r ), x2, 1.0_r );
+    const real x2 = x * x;
+    const real r = FMA( FMA( 8.0_r, x2, -8.0_r ), x2, 1.0_r );
     return __logistic_core < N - 2 > ( r );
 }
 
@@ -111,7 +111,10 @@ inline __D__ real uniform01( real seed, int i, int j )
 
 inline __D__ real mean0var1( real seed, int u, int v )
 {
-    const real p = rem( ( ( u & 0x3FF ) * gold ) + u * bronze + ( ( v & 0x3FF ) * silver ) + v * tin ); // safe for large u or v
+    const real p = rem( ( real( u & 0x3FF ) * gold ) +
+                        real(u) * bronze +
+                        ( real( v & 0x3FF ) * silver ) +
+                        real(v) * tin ); // safe for large u or v
     const real q = rem( seed );
     const real l = __logistic_core<N>( q - p );
     return l * sqrt2;
@@ -120,7 +123,10 @@ inline __D__ real mean0var1( real seed, int u, int v )
 inline __D__ real mean0var1( real seed, uint u, uint v )
 {
     // 7 FLOPS
-    const real p = rem( ( ( u & 0x3FFU ) * gold ) + u * bronze + ( ( v & 0x3FFU ) * silver ) + v * tin ); // safe for large u or v
+    const real p = rem( ( real( u & 0x3FFU ) * gold ) +
+                        real(u) * bronze +
+                        ( real( v & 0x3FFU ) * silver ) +
+                        real(v) * tin ); // safe for large u or v
     const real q = rem( seed );
 
     // 45+1 FLOPS
@@ -149,18 +155,12 @@ inline __D__ real mean0var1_dual( real seed, real u, real v )
 }
 } // namespace Logistic
 
-namespace Saru
-{
-__D__ real mean0var1( real seed, uint i, uint j );
-__D__ real mean0var1( real seed, int i, int j );
-__D__ real mean0var1( real seed, real i, real j );
-__D__ real uniform01( real seed, uint i, uint j );
-__D__ real2 normal2( real seed, uint i, uint j );
-}
+
+
 
 namespace Saru
 {
-__D__ inline real saru( unsigned int seed1, unsigned int seed2, unsigned int seed3 )
+__HD__ inline real saru( unsigned int seed1, unsigned int seed2, unsigned int seed3 )
 {
     seed3 ^= ( seed1 << 7 ) ^ ( seed2 >> 6 );
     seed2 += ( seed1 >> 4 ) ^ ( seed3 >> 15 );
@@ -183,11 +183,35 @@ __D__ inline real saru( unsigned int seed1, unsigned int seed2, unsigned int see
     const unsigned int v = ( state ^ ( state >> 26 ) ) + wstate;
     const unsigned int r = ( v ^ ( v >> 20 ) ) * 0x6957f5a7;
 
-    const real res = r / ( 4294967295.0_r );
+    const real res = real(r) / ( 4294967295.0_r );
     return res;
 }
 
-inline __D__ real2 normal2( real seed, uint i, uint j )
+inline __HD__ real uniform01( real seed, uint i, uint j )
+{
+    auto t = reinterpret_cast<unsigned int*>(&seed);
+    unsigned int tag = *t;
+
+    return saru( tag, i, j );
+}
+
+inline __HD__ real mean0var1( real seed, uint i, uint j )
+{
+    return uniform01(seed, i, j) * 3.464101615_r - 1.732050807_r;
+}
+
+inline __HD__ real mean0var1( real seed, int i, int j )
+{
+    return mean0var1( seed, (uint) i, (uint) j );
+}
+
+inline __HD__ real mean0var1( real seed, real i, real j )
+{
+    return mean0var1( seed, (uint) i, (uint) j );
+}
+
+
+inline __HD__ real2 normal2( real seed, uint i, uint j )
 {
     const real u1 = uniform01( seed, math::min(i, j),   math::max(i, j) );
     const real u2 = uniform01( u1,   math::max(i, j)+1, math::min(i, j) );
@@ -201,28 +225,6 @@ inline __D__ real2 normal2( real seed, uint i, uint j )
     return res;
 }
 
-inline __D__ real uniform01( real seed, uint i, uint j )
-{
-    auto t = reinterpret_cast<unsigned int*>(&seed);
-    unsigned int tag = *t;
-
-    return saru( tag, i, j );
-}
-
-inline __D__ real mean0var1( real seed, uint i, uint j )
-{
-    return uniform01(seed, i, j) * 3.464101615_r - 1.732050807_r;
-}
-
-inline __D__ real mean0var1( real seed, int i, int j )
-{
-    return mean0var1( seed, (uint) i, (uint) j );
-}
-
-inline __D__ real mean0var1( real seed, real i, real j )
-{
-    return mean0var1( seed, (uint) i, (uint) j );
-}
 
 } // namespace Saru
 

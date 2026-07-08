@@ -61,11 +61,11 @@ inline void compare(const std::string& name,
     ASSERT_EQ(a.persistence, b.persistence);
     ASSERT_EQ(a.shift, b.shift);
 
-    mpark::visit([&](auto aPtr)
+    std::visit([&](auto aPtr)
     {
         using T = typename std::remove_pointer<decltype(aPtr)>::type::value_type;
-        ASSERT_TRUE(mpark::holds_alternative<PinnedBuffer<T>*>(b.varDataPtr)) << "channel " << name << ": containers have different types";
-        compare(name, *aPtr, *mpark::get<PinnedBuffer<T>*>(b.varDataPtr));
+        ASSERT_TRUE(std::holds_alternative<PinnedBuffer<T>*>(b.varDataPtr)) << "channel " << name << ": containers have different types";
+        compare(name, *aPtr, *std::get<PinnedBuffer<T>*>(b.varDataPtr));
     }, a.varDataPtr);
 }
 
@@ -91,7 +91,7 @@ TEST (RESTART, pv)
     real L = 64.f;
     real density = 4.f;
     DomainInfo domain = createDomainInfo(comm, {L, L, L});
-    MirState state(domain, dt, UnitConversion{});
+    MirState state(domain, dt);
     auto pv0 = initializeRandomPV(comm, pvName, &state, density);
     auto pv1 = std::make_unique<ParticleVector> (&state, pvName, mass);
 
@@ -181,7 +181,7 @@ TEST (RESTART, rov)
     const int nObjs = 512;
     const int objSize = 666;
     DomainInfo domain = createDomainInfo(comm, {L, L, L});
-    MirState state(domain, dt, UnitConversion{});
+    MirState state(domain, dt);
 
     auto rov0 = initializeRandomREV(comm, rovName, &state, nObjs, objSize);
     auto rov1 = std::make_unique<RigidShapedObjectVector<Ellipsoid>> (&state, rovName, mass, objSize, Ellipsoid{{1.f, 1.f, 1.f}});

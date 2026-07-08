@@ -5,7 +5,6 @@
 #include <mirheo/core/utils/cpu_gpu_defines.h>
 #include <mirheo/core/utils/helper_math.h>
 #include <mirheo/core/utils/macros.h>
-#include <mirheo/core/utils/reflection.h>
 
 namespace mirheo
 {
@@ -45,10 +44,6 @@ public:
 
 private:
     real3 extraForce_;
-
-    friend MemberVars<ForcingTermConstDP>;
 };
-
-MIRHEO_MEMBER_VARS(ForcingTermConstDP, extraForce_);
 
 } // namespace mirheo

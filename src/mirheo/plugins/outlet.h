@@ -15,7 +15,7 @@ namespace mirheo
 
 class ParticleVector;
 class CellList;
-class Field;
+class ScalarField;
 
 /** Base class for outlet Plugins.
     Outlet plugins delete particles of given a ParticleVector list in a region.
@@ -112,7 +112,7 @@ protected:
 
 protected:
     double volume_; ///< Volume estimate of the outlet region.
-    std::unique_ptr<Field> outletRegion_; ///< Scalar field that describes the outlet region.
+    std::unique_ptr<ScalarField> outletRegion_; ///< Scalar field that describes the outlet region.
 };
 
 /** Delete particles located in a given region if the number density is higher than a target one.

@@ -21,7 +21,7 @@ density  = args.density
 ranks  = (1, 1, 1)
 domain = (16, 8, 8)
 
-u = mir.Mirheo(ranks, domain, debug_level=3, log_filename='log', no_splash=True)
+u = mir.Mirheo(ranks, domain, debug_level=3, log_filename='log', no_splash=True, max_obj_half_length=np.max(axes))
 
 pv_sol = mir.ParticleVectors.ParticleVector('solvent', mass = 1)
 ic_sol = mir.InitialConditions.Uniform(density)
@@ -76,7 +76,7 @@ u.registerPlugins(mir.Plugins.createDumpParticles('partDump', pv_ell, dump_every
 u.registerPlugins(mir.Plugins.createParticleChannelSaver("density_saver_sol", pv_sol, "densities", "den"))
 u.registerPlugins(mir.Plugins.createDumpParticles('partDump_sol', pv_sol, dump_every, ["den"], 'h5/sol_particles-'))
 
-u.registerPlugins(mir.Plugins.createDumpObjectStats("objStats", ov=pv_ell, dump_every=dump_every, path="stats"))
+u.registerPlugins(mir.Plugins.createDumpObjectStats("objStats", ov=pv_ell, dump_every=dump_every, filename="stats/ellipsoid.csv"))
 
 u.run(10000, dt=dt)
 

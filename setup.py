@@ -45,5 +45,7 @@ setup(
     package_dir = {'mirheo' : 'mirheo'},
     ext_modules=[BinaryExtension('libmirheo', sourcedir='./')],
     cmdclass=dict(build_ext=CopyLibrary),
+    url='https://mirheo.readthedocs.io/en/latest/',
+    license='MIT',
     zip_safe=False,
 )

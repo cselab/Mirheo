@@ -5,11 +5,11 @@
 Computational Microfluidics
 
 Mirheo is a GPU high-performance and high-throughput code aimed at simulation of flows at milli- and microscales.
-The code uses Dissipative Particle Dynamics method to describe the liquid and its interaction with cells and other bodies.
+The code uses Dissipative Particle Dynamics method to describe the liquid and its interaction with cells and rigid bodies.
 
 For more information, please refer to the online documentation: http://mirheo.readthedocs.io/
 
-If you want to cite this repository, please use the reference of the corresponding paper:
+If you want to cite this repository, please use the reference of the corresponding paper [[1]](#1):
 
 	@article{alexeev2020a,
 	author = {Dmitry Alexeev and Lucas Amoudruz and Sergey Litvinov and Petros Koumoutsakos},
@@ -24,6 +24,7 @@ If you want to cite this repository, please use the reference of the correspondi
 	}
 
 
+
 ## Installation
 
 ```sh
@@ -32,16 +33,82 @@ cd Mirheo
 make install
 ```
 
+## Publications
+
+<a id="1">[1]</a>
+	D. Alexeev, L. Amoudruz, S. Litvinov, and P. Koumoutsakos,
+	“Mirheo: high-performance mesoscale simulations for microfluidics,"
+	Comput. Phys. Commun., p. 107298, 2020
+  [10.1016/j.cpc.2020.107298](http://dx.doi.org/10.1016/j.cpc.2020.107298)
+
+<a id="2">[2]</a>
+	A. Economides, G. Arampatzis, D. Alexeev, S. Litvinov, L. Amoudruz, L. Kulakova, C. Papadimitriou, and P. Koumoutsakos,
+	“Hierarchical bayesian uncertainty quantification for a model of the red blood cell,"
+	Phys. Rev. Appl., vol. 15, iss. 3, 2021.
+  [10.1103/physrevapplied.15.034062](http://dx.doi.org/10.1103/physrevapplied.15.034062)
+
+
+## Gallery
+
+| [![ABF_blood](https://img.youtube.com/vi/pwEyiedh-Fg/0.jpg)](https://www.youtube.com/watch?v=pwEyiedh-Fg) | [![ABF_blood](https://img.youtube.com/vi/u-5yVLkBUdU/0.jpg)](https://www.youtube.com/watch?v=u-5yVLkBUdU) |
+:---:|:---:
+Single ABF in a blood suspension | Swarm of ABFs in a blood bifurcation
+
 ## Changelog
 
 ### unreleased
 
+* Add extended DPD interactions for visco-elastic fluids (see Ten Bosh 99)
+* Add EMA plugin
+* Add smooth-velocity-based visco-elastic DPD interactions
+* Add compilation option to disable stacktrace (when lib-bfd is not available)
+* Add sinusoid forcing term (for kolmogorov forcing)
+
+
+### v1.6.1
+
+* Add ChainObjectVector to model polymers
+* Add FENE interactions for ChainObjectVector
+* Add Four-roll mill force plugin
+* Add plugin to dump ChainObjectVector as polylines
+* Allow deformable object vectors to be bounced from walls
+* **bug fixes**
+  * No duplicate ObjectVector interactions when interacting with itself through pairwise interactions 
+
+### v1.6.0
+
+* remove support for config/snapshot. Use checkpoint/restart instead.
+* Add growing repulsive LJ pairwise interaction.
+* Shardlow integrator: randomize loop order. 
+
+### v1.5.2
+
+* Add magnetic dipole-dipole interactions plugin
+* **interface changes**
+  * Rename magneticOrientation plugin to externalMagneticTorque.
+  * Stats plugin: restart now adds to the previously written stats instead of overwriting the file.
+  * Object Stats plugin: restart now adds to the previously written stats instead of overwriting the file.
+  * Object Stats plugin: takes a filename instead of the path. This allows to avoid to create a directory and is more flexible.
+  * Velocity control plugin: restart now adds to the previously written stats instead of overwriting the file.
+
+### v1.5.1
+
 * Add particle averager plugin
 * Add binding (spring) interaction between particle vectors
 * Add Shardlow integrator for membranes
+* Add pairwise Morse potential
 * Docs: Add ADE model and add the corresponding reference.
 * **interface changes**
-  * remove `setSpecificPair` from pirwise interactions. The same effect can be obtained by creating more pairwise interactions instead.
+  * remove `setSpecificPair` from pairwise interactions. The same effect can be obtained by creating more pairwise interactions instead.
+  * wall force collector plugin: use csv format for output.
+  * wall force collector plugin: add optional "detailed" dump.
+  * Shape Bouncers: warnings are now optional, disabled by default.
+  * Add cupy-compatible bindings to per particle and per object channels.
+  * Add DomainInfo and time states to the bindings.
+  * Add MIRHEO_DEBUG_LEVEL environment variable.
+  * `stats` plugin: reordered `filename` and `every` arguments. Add optional list of pvs to compute stats from.
+* **bug fixes**
+  * RDF plugin: fixed a bug that occured when the max distance was more than a third of the subdomain.
 
 
 ### v1.5.0

@@ -18,7 +18,7 @@ namespace mirheo
 namespace XDMF
 {
 void write(const std::string& filename, const Grid *grid,
-           const std::vector<Channel>& channels, MirState::TimeType time, MPI_Comm comm)
+           const std::vector<Channel>& channels, MPI_Comm comm)
 {
     std::string h5Filename  = filename + ".h5";
     std::string xmfFilename = filename + ".xmf";
@@ -27,16 +27,9 @@ void write(const std::string& filename, const Grid *grid,
 
     mTimer timer;
     timer.start();
-    XMF::write(xmfFilename, getBaseName(h5Filename), comm, grid, channels, time);
+    XMF::write(xmfFilename, getBaseName(h5Filename), comm, grid, channels);
     HDF5::write(h5Filename, comm, grid, channels);
     info("Writing took %f ms", timer.elapsed());
-}
-
-void write(const std::string& filename, const Grid *grid,
-           const std::vector<Channel>& channels, MPI_Comm comm)
-{
-    constexpr MirState::TimeType arbitraryTime = -1.0;
-    write(filename, grid, channels, arbitraryTime, comm);
 }
 
 inline long getLocalNumElements(const GridDims *gridDims)

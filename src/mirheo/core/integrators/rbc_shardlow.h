@@ -75,6 +75,7 @@ private:
 
     std::mt19937 rnd_;
     std::map<std::string, std::unique_ptr<MeshDistinctEdgeSets>> pvToEdgeSets_;
+    std::vector<int> colorIds_; //< a helper to loop over colors in a random order
 };
 
 } // namespace mirheo

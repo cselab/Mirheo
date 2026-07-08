@@ -11,11 +11,8 @@
 #include <string>
 #include <vector>
 
-namespace mirheo
-{
-
-namespace XDMF
-{
+namespace mirheo {
+namespace XDMF {
 
 /** \brief Interface to represent the dimensions of the geometry data
  */
@@ -209,6 +206,37 @@ private:
     void _writeTopology(pugi::xml_node& topoNode, const std::string& h5filename) const override;
 };
 
-} // namespace XDMF
 
+
+/** \brief Representation of polyline mesh geometry.
+
+    This is a VertexGrid associated with the additional connectivity (list of polylines).
+    The vertices are stored in global coordinates and the connectivity also stores indices in global coordinates.
+ */
+class PolylineMeshGrid : public VertexGrid
+{
+public:
+    /** \brief Construct a PolylineMeshGrid object
+        \param positions The positions of the particles in the current subdomain, in global coordinates
+        \param polylines The list of polylines in the current subdomain (global indices) (flatten array)
+        \param chainSize The number of vertices per polyline
+        \param comm The communicator that will be used for I/O
+     */
+    PolylineMeshGrid(std::shared_ptr<std::vector<real3>> positions,
+                     std::shared_ptr<std::vector<int>> polylines,
+                     int chainSize,
+                     MPI_Comm comm);
+
+    void writeToHDF5(hid_t file_id, MPI_Comm comm) const override;
+
+private:
+    static const std::string polylineChannelName_;
+    VertexGridDims dimsPolylines_;
+    std::shared_ptr<std::vector<int>> polylines_;
+    int chainSize_;
+
+    void _writeTopology(pugi::xml_node& topoNode, const std::string& h5filename) const override;
+};
+
+} // namespace XDMF
 } // namespace mirheo

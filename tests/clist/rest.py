@@ -36,7 +36,7 @@ u.setIntegrator(vv, pv)
 
 dump_every = 100
 
-u.registerPlugins(mir.Plugins.createStats('stats', "stats", dump_every))
+u.registerPlugins(mir.Plugins.createStats('stats', every=dump_every, filename="stats"))
 
 u.run(501, dt=dt)
 

@@ -5,6 +5,9 @@
 #include <mirheo/core/interactions/interface.h>
 #include <mirheo/core/interactions/utils/parameters_wrap.h>
 
+#include <map>
+#include <optional>
+
 namespace mirheo
 {
 
@@ -32,17 +35,17 @@ public:
                        Must be positive and smaller than the sub-domain size.
     */
     BaseTriplewiseInteraction(const MirState *state, const std::string& name, real rc);
-
-    /** \brief Construct the interaction from a snapshot.
-        \param [in] state The global state of the system.
-        \param [in] loader The \c Loader object. Provides load context and unserialization functions.
-        \param [in] config The parameters of the interaction.
-     */
-    BaseTriplewiseInteraction(const MirState *state, Loader& loader, const ConfigObject& config);
     ~BaseTriplewiseInteraction();
 
+    /** Two-body variants of local() / halo(); must never be called on a
+        triplewise interaction: they die. */
+    void local(ParticleVector *pv1, ParticleVector *pv2,
+               CellList *cl1, CellList *cl2, cudaStream_t stream) override;
+    void halo(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1,
+              CellList *cl2, cudaStream_t stream) override;
+
     /// \return effective cutoff radius of 2*rc, to exchange 2*rc of ghost particles
-    real getCutoffRadius() const override;
+    std::optional<real> getCutoffRadius() const override;
 
 protected:
     /// Temporary cell lists for computing the interaction.
@@ -59,12 +62,6 @@ protected:
         \param [in] refCL Reference \c CellList with local particles
      */
     CellListPair* _getOrCreateCellLists(ParticleVector *pv, const CellList *refCL);
-
-    /** \brief Snapshot saving for base triplewise interactions. Stores the cutoff value.
-        \param [in,out] saver The \c Saver object. Provides save context and serialization functions.
-        \param [in] typeName The name of the type being saved.
-    */
-    ConfigObject _saveSnapshot(Saver& saver, const std::string& typeName);
 
 protected:
     /// cut-off radius of the interaction

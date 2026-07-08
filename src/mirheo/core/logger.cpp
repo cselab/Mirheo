@@ -17,6 +17,18 @@ namespace mirheo
 
 Logger logger;
 
+int getDefaultDebugLvl()
+{
+    const char *var = std::getenv("MIRHEO_DEBUG_LEVEL");
+    if (var != nullptr && var[0] != '\0') {
+        int lvl;
+        if (1 == sscanf(var, "%d", &lvl))
+            return lvl;
+        fprintf(stderr, "MIRHEO_DEBUG_LEVEL should be an integer, got \"%s\". Ignoring.", var);
+    }
+    return 3;  // The default value if no environment variable is set.
+}
+
 static void printStacktrace(FILE *fout)
 {
     std::ostringstream strace;
@@ -24,9 +36,28 @@ static void printStacktrace(FILE *fout)
     fwrite(strace.str().c_str(), sizeof(char), strace.str().size(), fout);
 }
 
+Logger::Logger()
+{
+    const char *var = std::getenv("MIRHEO_LOGGER_AUTO_STDOUT");
+    if (var != nullptr && var[0] != '\0') {
+        int flag;
+        if (1 == sscanf(var, "%d", &flag) && flag != 0) {
+            init(MPI_COMM_WORLD,
+                 FileWrapper{FileWrapper::SpecialStream::Cout, true},
+                 -1);
+        }
+    }
+}
+
+Logger::~Logger() = default;
+
 void Logger::init(MPI_Comm comm, const std::string& fname, int debugLvl)
 {
-    MPI_Comm_rank(comm, &rank_);
+    if (comm != MPI_COMM_NULL)
+        MPI_Comm_rank(comm, &rank_);
+    else
+        rank_ = 0;
+
     constexpr int zeroPadding = 5;
     const std::string rankStr = createStrZeroPadded(rank_, zeroPadding);
 
@@ -47,17 +78,24 @@ void Logger::init(MPI_Comm comm, const std::string& fname, int debugLvl)
     stacktrace::registerSignals();
 }
 
-void Logger::init(MPI_Comm comm, FileWrapper&& fout, int debugLvl)
+void Logger::init(MPI_Comm comm, FileWrapper fout, int debugLvl)
 {
-    MPI_Comm_rank(comm, &rank_);
-    this->fout_ = std::move(fout);
+    if (comm != MPI_COMM_NULL)
+        MPI_Comm_rank(comm, &rank_);
+    else
+        rank_ = 0;
+
+    fout_ = std::move(fout);
 
     setDebugLvl(debugLvl);
 }
 
+
 void Logger::setDebugLvl(int debugLvl)
 {
-    runtimeDebugLvl_ = std::max(std::min(debugLvl, COMPILE_DEBUG_LVL), 0);
+    if (debugLvl < 0)
+        debugLvl = getDefaultDebugLvl();
+    runtimeDebugLvl_ = std::min(debugLvl, COMPILE_DEBUG_LVL);
     if (runtimeDebugLvl_ >= 1) {
         log("INFO", __FILE__, __LINE__,
             "Compiled with maximum debug level %d", COMPILE_DEBUG_LVL);
@@ -76,11 +114,31 @@ void Logger::log(const char *key, const char *filename, int line, const char *fm
 void Logger::_logImpl(const char *key, const char *filename, int line, const char *fmt, va_list args) const {
     if (!fout_.get())
     {
-        int world_rank;
-        MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
+        int mpiInitialized;
+        int codeInitialized = MPI_Initialized(&mpiInitialized);
+        if (codeInitialized != 0)
+        {
+             fprintf(stderr, "MPI_Initialized error: %d\n", codeInitialized);
+        }
+
+        std::string rankInfoMsg;
+        if (mpiInitialized)
+        {
+            int worldRank;
+            MPI_Comm_rank(MPI_COMM_WORLD, &worldRank);
+            rankInfoMsg = strprintf("from rank %d", worldRank);
+        }
+        else
+        {
+            rankInfoMsg = " with uninitialized MPI environment";
+        }
+
         printStacktrace(stderr);
-        fprintf(stderr, "\n\nLogger file is not set but tried to be used at %s:%d from rank %d"
-                " with the following message:\n", filename, line, world_rank);
+        fprintf(stderr,
+                "\n\nLogger not initialized but used at %s:%d %s.\n"
+                "This may happen in case multiple `logger` global variables are created.\n"
+                "Try setting the environment variable MIRHEO_LOGGER_AUTO_STDOUT=1 or MIRHEO_DEBUG_LEVEL=0.\n\n"
+                "The message was:\n", filename, line, rankInfoMsg.c_str());
         vfprintf(stderr, fmt, args);
         fprintf(stderr, "\n");
         throw std::runtime_error("Logger used before initialization. Message was printed to stderr.");
@@ -126,7 +184,7 @@ void Logger::_die [[noreturn]](const char *filename, int line, const char *fmt, 
     va_end(args);
 
     printStacktrace(fout_.get());
-    fout_.close();
+    fflush(fout_.get());
 
     // http://stackoverflow.com/a/26221725  (modified)
     va_start(args, fmt);

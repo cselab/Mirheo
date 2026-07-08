@@ -229,8 +229,8 @@ intersectSegmentWithTriangle(Triangle trNew, Triangle trOld,
 
 
     // precompute scaling factor
-    auto n = cross(trNew.v1-trNew.v0,
-                   trNew.v2-trNew.v0);
+    const real3 n = cross(trNew.v1-trNew.v0,
+                          trNew.v2-trNew.v0);
     const real n_1 = math::rsqrt(dot(n, n));
 
     // Distance to a triangle

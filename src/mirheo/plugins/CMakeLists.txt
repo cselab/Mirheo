@@ -2,15 +2,18 @@ set(sources_cpp
   channel_dumper.cpp
   dump_mesh.cpp
   dump_particles_with_mesh.cpp
+  dump_polylines.cpp
   dump_xyz.cpp
   factory.cpp
   particle_channel_saver.cpp
-  utils/time_stamp.cpp
-  utils/xyz.cpp
   )
 
 set(sources_cu
   add_force.cu
+  add_force_field.cu
+  add_potential_force.cu
+  add_reverse_poiseuille_force.cu
+  add_sinusoidal_force.cu
   add_torque.cu
   anchor_particle.cu
   average_flow.cu
@@ -22,10 +25,13 @@ set(sources_cu
   dump_obj_stats.cu
   dump_particles.cu
   exchange_pvs_flux_plane.cu
+  exp_moving_average.cu
+  external_magnetic_torque.cu
   force_saver.cu
+  four_roll_mill.cu
   impose_profile.cu
   impose_velocity.cu
-  magnetic_orientation.cu
+  magnetic_dipole_interactions.cu
   membrane_extra_force.cu
   msd.cu
   outlet.cu
@@ -35,6 +41,9 @@ set(sources_cu
   pin_object.cu
   pin_rod_extremity.cu
   rdf.cu
+  rmacf.cu
+  shear_field.cu
+  sinusoidal_field.cu
   stats.cu
   stress_tensor.cu
   temperaturize.cu
@@ -47,6 +56,8 @@ set(sources_cu
   )
 
 add_library(${LIB_MIR_CORE_AND_PLUGINS} STATIC ${sources_cpp} ${sources_cu})
+
+add_subdirectory(utils)
 
 target_include_directories(${LIB_MIR_CORE_AND_PLUGINS} PUBLIC ${MIR_BASE_INCLUDE_DIR} )
 target_include_directories(${LIB_MIR_CORE_AND_PLUGINS} PUBLIC ${MPI_CXX_INCLUDE_DIRS})

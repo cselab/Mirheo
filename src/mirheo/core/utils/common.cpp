@@ -2,7 +2,6 @@
 #include "common.h"
 
 #include <mirheo/core/logger.h>
-#include <mirheo/core/utils/config.h>
 
 #include <algorithm>
 #include <cassert>
@@ -13,15 +12,18 @@ namespace mirheo
 namespace channel_names
 {
 
-const std::string globalIds   = "ids";
+const std::string globalIds        = "ids";
 
-const std::string positions     = "positions";
-const std::string velocities    = "velocities";
-const std::string forces        = "__forces"; // forces are special, as they are not available di
+const std::string positions        = "positions";
+const std::string velocities       = "velocities";
+const std::string forces           = "__forces"; // forces are special, as they are not available directly for dump
 
-const std::string stresses      = "stresses";
-const std::string densities     = "densities";
-const std::string oldPositions  = "old_positions";
+const std::string stresses         = "stresses";
+const std::string densities        = "densities";
+const std::string oldPositions     = "old_positions";
+const std::string polChainVectors  = "Q";
+const std::string derChainVectors  = "dQdt";
+const std::string smoothVelocities = "smoothVelocities";
 
 const std::string motions     = "motions";
 const std::string oldMotions  = "old_motions";
@@ -41,7 +43,9 @@ const std::string rodTau_l      = "biseg_tau_l";
 
 
 const std::vector<std::string> reservedParticleFields =
-    {globalIds, positions, velocities, forces, stresses, densities, oldPositions};
+    {globalIds, positions, velocities,
+     forces, stresses, densities, oldPositions,
+     polChainVectors, derChainVectors};
 
 const std::vector<std::string> reservedObjectFields =
     {globalIds, motions, oldMotions, comExtents, areaVolumes, membraneTypeId,
@@ -81,35 +85,15 @@ const std::string torque     = "torques";
 } // namespace channel_names
 
 CheckpointInfo::CheckpointInfo(int every_, const std::string& folder_,
-                               CheckpointIdAdvanceMode mode_,
-                               CheckpointMechanism mechanism_) :
+                               CheckpointIdAdvanceMode mode_) :
     every(every_),
     folder(folder_),
-    mode(mode_),
-    mechanism(mechanism_)
+    mode(mode_)
 {}
 
 bool CheckpointInfo::needDump() const
 {
     return every != 0;
-}
-
-ConfigValue TypeLoadSave<CheckpointInfo>::save(Saver& saver, const CheckpointInfo& info)
-{
-    return ConfigValue::Object{
-        {"__type",    saver("CheckpointInfo")},
-        {"every",     saver(info.every)},
-        {"folder",    saver(info.folder)},
-        {"mode",      saver(info.mode)},
-        {"mechanism", saver(info.mechanism)},
-    };
-}
-
-CheckpointInfo TypeLoadSave<CheckpointInfo>::load(Loader&, const ConfigValue& config)
-{
-    assert(config["__type"] == "CheckpointInfo");
-    return CheckpointInfo{config["every"], config["folder"], config["mode"],
-                          config["mechanism"]};
 }
 
 } // namespace mirheo

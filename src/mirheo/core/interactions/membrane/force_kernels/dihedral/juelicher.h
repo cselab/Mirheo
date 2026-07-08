@@ -26,11 +26,23 @@ public:
     DihedralJuelicher(ParametersType p, mReal lscale) :
         scurv_(0)
     {
-        kb_    = p.kb         * lscale*lscale;
-        kadPi_ = p.kad * M_PI * lscale*lscale;
+        kb_    = p.kb;
+        kadPi_ = p.kad * M_PI;
 
-        H0_  = p.C0 / (2*lscale);
-        DA0_ = p.DA0 / (lscale*lscale);
+        H0_  = p.C0 / 2;
+        DA0_ = p.DA0;
+
+        applyLengthScalingFactor(lscale);
+    }
+
+    /// Scale length-dependent parameters.
+    __HD__ void applyLengthScalingFactor(mReal lscale)
+    {
+        const mReal inv = 1 / lscale;
+        kb_ *= lscale * lscale;
+        kadPi_ *= lscale * lscale;
+        H0_ *= inv;
+        DA0_ *= inv * inv;
     }
 
     /** \brief Precompute internal values that are common to all vertices in the cell.
@@ -71,6 +83,7 @@ private:
 
     __D__ inline mReal3 _forceTheta(VertexType v0, VertexType v1, VertexType v2, VertexType v3, mReal3 &f1) const
     {
+        constexpr mReal eps = 1e-6_mr;
         const mReal3 v20 = v0.r - v2.r;
         const mReal3 v21 = v1.r - v2.r;
         const mReal3 v23 = v3.r - v2.r;
@@ -78,8 +91,8 @@ private:
         const mReal3 n = cross(v21, v20);
         const mReal3 k = cross(v20, v23);
 
-        const mReal inv_lenn = math::rsqrt(dot(n,n));
-        const mReal inv_lenk = math::rsqrt(dot(k,k));
+        const mReal inv_lenn = math::rsqrt(math::max(dot(n,n), eps));
+        const mReal inv_lenk = math::rsqrt(math::max(dot(k,k), eps));
 
         const mReal cotangent2n = dot(v20, v21) * inv_lenn;
         const mReal cotangent2k = dot(v23, v20) * inv_lenk;
@@ -123,8 +136,5 @@ private:
     mReal DA0_;   ///< spontaneous area difference
     mReal scurv_; ///< helper quantity
 };
-
-/// create name for that type
-MIRHEO_TYPE_NAME_AUTO(DihedralJuelicher);
 
 } // namespace mirheo

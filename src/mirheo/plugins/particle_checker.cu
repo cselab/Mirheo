@@ -240,7 +240,7 @@ static inline void downloadAllFields(cudaStream_t stream, const DataManager& man
     for (auto entry : manager.getSortedChannels())
     {
         auto desc = entry.second;
-        mpark::visit([stream](auto pinnedBuffPtr)
+        std::visit([stream](auto pinnedBuffPtr)
         {
             pinnedBuffPtr->downloadFromDevice(stream, ContainersSynch::Asynch);
         }, desc->varDataPtr);
@@ -261,7 +261,7 @@ static inline std::string listOtherFieldValues(const DataManager& manager, int i
             name == channel_names::velocities)
             continue;
 
-        mpark::visit([&](auto pinnedBuffPtr)
+        std::visit([&](auto pinnedBuffPtr)
         {
             const auto val = (*pinnedBuffPtr)[id];
             fieldValues += '\t' + name + " : " + printToStr(val) + '\n';

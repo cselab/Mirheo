@@ -2,8 +2,8 @@
 #pragma once
 
 #include <mirheo/core/datatypes.h>
-#include <mirheo/core/utils/reflection.h>
-#include <mirheo/core/utils/variant.h>
+
+#include <variant>
 
 namespace mirheo
 {
@@ -13,16 +13,23 @@ namespace mirheo
 class PairwiseSW;
 class PairwiseDPD;
 class PairwiseNoRandomDPD;
+class PairwiseViscoElasticDPD;
 class PairwiseLJ;
 
-struct LJAwarenessNone;
-struct LJAwarenessObject;
-struct LJAwarenessRod;
+struct AwarenessNone;
+struct AwarenessObject;
+struct AwarenessRod;
 
 template <class Awareness>
 class PairwiseRepulsiveLJ;
 
+template <class Awareness>
+class PairwiseGrowingRepulsiveLJ;
+
 class PairwiseMDPD;
+
+template <class Awareness>
+class PairwiseMorse;
 
 class SimpleMDPDDensityKernel;
 class WendlandC2DensityKernel;
@@ -38,7 +45,7 @@ class PairwiseSDPD;
 
 // corresponding parameters, visible by users
 
-/// Dissipative Particle Dynamics  parameters
+/// Stillinger-Weber (two-body term) parameters
 struct SW2Params
 {
     using KernelType = PairwiseSW; ///< the corresponding kernel
@@ -47,7 +54,6 @@ struct SW2Params
     real A;         ///< SW Parameter
     real B;         ///< SW Parameter
 };
-MIRHEO_MEMBER_VARS(SW2Params, epsilon, sigma, A, B);
 
 struct DPDParams
 {
@@ -57,7 +63,6 @@ struct DPDParams
     real kBT;   ///< temperature in energy units
     real power; ///< exponent of the envelope of the viscous kernel
 };
-MIRHEO_MEMBER_VARS(DPDParams, a, gamma, kBT, power);
 
 /// Dissipative Particle Dynamics parameters with no fluctuations
 struct NoRandomDPDParams
@@ -68,7 +73,22 @@ struct NoRandomDPDParams
     real kBT;   ///< temperature in energy units
     real power; ///< exponent of the envelope of the viscous kernel
 };
-MIRHEO_MEMBER_VARS(NoRandomDPDParams, a, gamma, kBT, power);
+
+
+/// Extended Dissipative Particle Dynamics parameters (see Bosch 1999)
+struct ViscoElasticDPDParams
+{
+    using KernelType = PairwiseViscoElasticDPD; ///< the corresponding kernel
+    real a;     ///< conservative force coefficient
+    real gamma; ///< dissipative force conservative
+    real kBT;   ///< temperature in energy units
+    real power; ///< exponent of the envelope of the viscous kernel
+    real H;     ///< Elastic modulus
+    real zeta;  ///< friction coefficient for the chains
+    real kBTC;  ///< Chain temperature
+    real n0;    ///< number density of the fluid, used to normalize kernels.
+};
+
 
 /// Lennard-Jones parameters
 struct LJParams
@@ -77,34 +97,31 @@ struct LJParams
     real epsilon; ///< force coefficient
     real sigma;   ///< radius with zero energy in LJ potential
 };
-MIRHEO_MEMBER_VARS(LJParams, epsilon, sigma);
 
-/// Parameters for no awareness in LJ interactions
-struct LJAwarenessParamsNone
+/// Parameters for no awareness in pairwise interactions
+struct AwarenessParamsNone
 {
-    using KernelType = LJAwarenessNone; ///< the corresponding kernel
+    using KernelType = AwarenessNone; ///< the corresponding kernel
 };
-MIRHEO_MEMBER_VARS(LJAwarenessParamsNone);
 
-/// Parameters for object awareness in LJ interactions
-struct LJAwarenessParamsObject
+/// Parameters for object awareness in pairwise interactions
+struct AwarenessParamsObject
 {
-    using KernelType = LJAwarenessObject; ///< the corresponding kernel
+    using KernelType = AwarenessObject; ///< the corresponding kernel
 };
-MIRHEO_MEMBER_VARS(LJAwarenessParamsObject);
 
-/// Parameters for rod awareness in LJ interactions
-struct LJAwarenessParamsRod
+/// Parameters for rod awareness in pairwise interactions
+struct AwarenessParamsRod
 {
-    using KernelType = LJAwarenessRod; ///< the corresponding kernel
+    using KernelType = AwarenessRod; ///< the corresponding kernel
     int minSegmentsDist; ///< number of segments away to ignore the self interaction
 };
-MIRHEO_MEMBER_VARS(LJAwarenessParamsRod, minSegmentsDist);
 
 /// variant of all awareness modes
-using VarLJAwarenessParams = mpark::variant<LJAwarenessParamsNone,
-                                            LJAwarenessParamsObject,
-                                            LJAwarenessParamsRod>;
+using VarAwarenessParams = std::variant<AwarenessParamsNone,
+                                        AwarenessParamsObject,
+                                        AwarenessParamsRod>;
+
 
 /// Repulsive Lennard-Jones parameters
 struct RepulsiveLJParams
@@ -112,9 +129,31 @@ struct RepulsiveLJParams
     real epsilon;  ///< force coefficient
     real sigma;    ///< radius with zero energy in LJ potential
     real maxForce; ///< cap force
-    VarLJAwarenessParams varLJAwarenessParams; ///< awareness
+    VarAwarenessParams varAwarenessParams; ///< awareness
 };
-MIRHEO_MEMBER_VARS(RepulsiveLJParams, epsilon, sigma, maxForce, varLJAwarenessParams);
+
+/// Growing Repulsive Lennard-Jones parameters
+struct GrowingRepulsiveLJParams
+{
+    real epsilon;  ///< force coefficient
+    real sigma;    ///< radius with zero energy in LJ potential
+    real maxForce; ///< cap force
+    VarAwarenessParams varAwarenessParams; ///< awareness
+    real initialLengthFraction; ///< initial factor for the length scale
+    real growUntil; ///< time after which the length factor is one
+};
+
+
+/// Morse parameters
+struct MorseParams
+{
+    real De; ///< force coefficient
+    real r0; ///< zero force distance
+    real beta; ///< interaction range parameter
+    real maxForce; ///< cap force
+    VarAwarenessParams varAwarenessParams; ///< awareness
+};
+
 
 /// Multi-body Dissipative Particle Dynamics parameters
 struct MDPDParams
@@ -127,32 +166,28 @@ struct MDPDParams
     real kBT;   ///< temperature in energy units
     real power; ///< exponent of the envelope of the viscous kernel
 };
-MIRHEO_MEMBER_VARS(MDPDParams, rd, a, b, gamma, kBT, power);
 
 /// Density parameters for MDPD
 struct SimpleMDPDDensityKernelParams
 {
     using KernelType = SimpleMDPDDensityKernel; ///< the corresponding kernel
 };
-MIRHEO_MEMBER_VARS(SimpleMDPDDensityKernelParams);
 
 /// Density parameters for Wendland C2 function
 struct WendlandC2DensityKernelParams
 {
     using KernelType = WendlandC2DensityKernel; ///< the corresponding kernel
 };
-MIRHEO_MEMBER_VARS(WendlandC2DensityKernelParams);
 
 /// variant of all density types
-using VarDensityKernelParams = mpark::variant<SimpleMDPDDensityKernelParams,
-                                              WendlandC2DensityKernelParams>;
+using VarDensityKernelParams = std::variant<SimpleMDPDDensityKernelParams,
+                                            WendlandC2DensityKernelParams>;
 
 /// Density parameters
 struct DensityParams
 {
     VarDensityKernelParams varDensityKernelParams; ///< kernel parameters
 };
-MIRHEO_MEMBER_VARS(DensityParams, varDensityKernelParams);
 
 
 /// parameters for linear equation of state
@@ -162,7 +197,6 @@ struct LinearPressureEOSParams
     real soundSpeed; ///< Speed of sound
     real rho0;       ///< reference density
 };
-MIRHEO_MEMBER_VARS(LinearPressureEOSParams, soundSpeed, rho0);
 
 /// parameters for quasi incompressible equation of state
 struct QuasiIncompressiblePressureEOSParams
@@ -171,14 +205,13 @@ struct QuasiIncompressiblePressureEOSParams
     real p0;   ///< pressure magnitude
     real rhor; ///< reference density
 };
-MIRHEO_MEMBER_VARS(QuasiIncompressiblePressureEOSParams, p0, rhor);
 
 /// variant of all equation of states parameters
-using VarEOSParams = mpark::variant<LinearPressureEOSParams,
-                                    QuasiIncompressiblePressureEOSParams>;
+using VarEOSParams = std::variant<LinearPressureEOSParams,
+                                  QuasiIncompressiblePressureEOSParams>;
 
 /// variant of all density kernels compatible with SDPD
-using VarSDPDDensityKernelParams = mpark::variant<WendlandC2DensityKernelParams>;
+using VarSDPDDensityKernelParams = std::variant<WendlandC2DensityKernelParams>;
 
 /// Smoothed Dissipative Particle Dynamics parameters
 struct SDPDParams
@@ -188,30 +221,6 @@ struct SDPDParams
     VarEOSParams varEOSParams; ///< equation of state
     VarSDPDDensityKernelParams varDensityKernelParams; ///< density kernel
 };
-MIRHEO_MEMBER_VARS(SDPDParams, viscosity, kBT, varEOSParams, varDensityKernelParams);
 
-/// variant of all possible pairwise interactions
-using VarPairwiseParams = mpark::variant<SW2Params,
-                                         DPDParams,
-                                         LJParams,
-                                         RepulsiveLJParams,
-                                         MDPDParams,
-                                         DensityParams,
-                                         SDPDParams>;
-
-
-/// parameters when the stress is not active
-struct StressNoneParams {};
-MIRHEO_MEMBER_VARS(StressNoneParams);
-
-/// parameters when the stress is active
-struct StressActiveParams
-{
-    real period; ///< compute stresses every this time in time units
-};
-MIRHEO_MEMBER_VARS(StressActiveParams, period);
-
-/// active/non active stress parameters
-using VarStressParams = mpark::variant<StressNoneParams, StressActiveParams>;
 
 } // namespace mirheo

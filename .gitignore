@@ -21,6 +21,7 @@ data/
 .project
 __pycache__/
 *.pyc
+*.swo
 *.swp
 *.kdev4
 build/

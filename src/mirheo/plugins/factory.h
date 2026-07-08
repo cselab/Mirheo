@@ -2,29 +2,47 @@
 #pragma once
 
 #include <mirheo/core/plugins.h>
+#include <mirheo/core/pvs/chain_vector.h>
 #include <mirheo/core/pvs/object_vector.h>
 #include <mirheo/core/pvs/particle_vector.h>
 #include <mirheo/core/pvs/rigid_object_vector.h>
 #include <mirheo/core/pvs/rod_vector.h>
-#include <mirheo/core/snapshot.h>
 #include <mirheo/core/walls/interface.h>
 
+#include <array>
 #include <functional>
 #include <memory>
 #include <string>
 #include <vector>
 
-namespace mirheo
-{
+namespace mirheo {
+namespace plugin_factory {
 
-namespace plugin_factory
-{
 using PairPlugin = std::pair<std::shared_ptr<SimulationPlugin>,
                              std::shared_ptr<PostprocessPlugin>>;
 
-PairPlugin createAddSpecificForcePlugin(bool computeTask, const MirState *state, std::string name, ParticleVector *pv, real3 force); //TODO: is this form noah? delete?
+PairPlugin createAddFourRollMillForcePlugin(bool computeTask, const MirState *state,
+                                            std::string name, ParticleVector *pv, real intensity);
 
 PairPlugin createAddForcePlugin(bool computeTask, const MirState *state, std::string name, ParticleVector *pv, real3 force);
+
+PairPlugin createAddForceFieldPlugin(bool computeTask, const MirState *state, std::string name,
+                                     ParticleVector *pv, std::function<real3(real3)> forceField, real3 gridSpacing);
+
+PairPlugin createAddForceFieldPlugin(bool computeTask, const MirState *state, std::string name,
+                                     ParticleVector *pv, std::string forceField, real3 gridSpacing);
+
+PairPlugin createAddPotentialForcePlugin(bool computeTask, const MirState *state, std::string name,
+                                         ParticleVector *pv, std::function<real(real3)> potentialField, real3 gridSpacing);
+
+PairPlugin createAddPotentialForcePlugin(bool computeTask, const MirState *state, std::string name,
+                                         ParticleVector *pv, std::string potentialField, real3 gridSpacing);
+
+PairPlugin createAddReversePoiseuilleForcePlugin(bool computeTask, const MirState *state, std::string name, ParticleVector *pv,
+                                                 real3 force, char flipDirection);
+
+PairPlugin createAddSinusoidalForcePlugin(bool computeTask, const MirState *state, std::string name, ParticleVector *pv,
+                                          real magnitude, int waveNumber);
 
 PairPlugin createAddTorquePlugin(bool computeTask, const MirState *state, std::string name, ParticleVector *pv, real3 torque);
 
@@ -34,11 +52,12 @@ PairPlugin createAnchorParticlesPlugin(bool computeTask, const MirState *state, 
                                        std::vector<int> pids, int reportEvery, const std::string& path);
 
 PairPlugin createBerendsenThermostatPlugin(bool computeTask, const MirState *state, std::string name,
-                                           const std::vector<ParticleVector *> &pv, real tau, real T, real kBT, bool increaseIfLower);
+                                           const std::vector<ParticleVector *> &pv, real tau, real kBT, bool increaseIfLower);
 
 PairPlugin createCopyPVPlugin(bool computeTask, const MirState *state, std::string name, ParticleVector *pvTarget, ParticleVector *pvSource);
 
-PairPlugin createDensityControlPlugin(bool computeTask, const MirState *state, std::string name, std::string fname, std::vector<ParticleVector*> pvs,
+PairPlugin createDensityControlPlugin(bool computeTask, const MirState *state, std::string name,
+                                      std::string fname, std::vector<ParticleVector*> pvs,
                                       real targetDensity, std::function<real(real3)> region, real3 resolution,
                                       real levelLo, real levelHi, real levelSpace, real Kp, real Ki, real Kd,
                                       int tuneEvery, int dumpEvery, int sampleEvery);
@@ -52,27 +71,46 @@ PairPlugin createPlaneOutletPlugin(bool computeTask, const MirState *state, std:
 PairPlugin createRateOutletPlugin(bool computeTask, const MirState *state, std::string name, std::vector<ParticleVector*> pvs,
                                   real rate, std::function<real(real3)> region, real3 resolution);
 
-PairPlugin createDumpAveragePlugin(bool computeTask, const MirState *state, std::string name, std::vector<ParticleVector*> pvs,
-                                   int sampleEvery, int dumpEvery, real3 binSize, std::vector<std::string> channelNames, std::string path);
+PairPlugin createDumpAveragePlugin(bool computeTask, const MirState *state, std::string name,
+                                   std::vector<ParticleVector*> pvs, int sampleEvery, int dumpEvery,
+                                   real3 binSize, std::vector<std::string> channelNames, std::string path);
 
-PairPlugin createDumpAverageRelativePlugin(bool computeTask, const MirState *state, std::string name, std::vector<ParticleVector*> pvs,
+PairPlugin createDumpAverageRelativePlugin(bool computeTask, const MirState *state, std::string name,
+                                           std::vector<ParticleVector*> pvs,
                                            ObjectVector* relativeToOV, int relativeToId,
                                            int sampleEvery, int dumpEvery, real3 binSize,
                                            std::vector<std::string> channelNames, std::string path);
 
-PairPlugin createDumpMeshPlugin(bool computeTask, const MirState *state, std::string name, ObjectVector* ov, int dumpEvery, std::string path);
+PairPlugin createDumpMeshPlugin(bool computeTask, const MirState *state, std::string name,
+                                ObjectVector* ov, int dumpEvery, std::string path);
 
-PairPlugin createDumpParticlesPlugin(bool computeTask, const MirState *state, std::string name, ParticleVector *pv, int dumpEvery,
+PairPlugin createDumpParticlesPlugin(bool computeTask, const MirState *state, std::string name,
+                                     ParticleVector *pv, int dumpEvery,
                                      const std::vector<std::string>& channelNames, std::string path);
 
-PairPlugin createDumpParticlesWithMeshPlugin(bool computeTask, const MirState *state, std::string name, ObjectVector *ov, int dumpEvery,
+PairPlugin createDumpParticlesWithMeshPlugin(bool computeTask, const MirState *state, std::string name,
+                                             ObjectVector *ov, int dumpEvery,
                                              const std::vector<std::string>& channelNames, std::string path);
 
-PairPlugin createDumpXYZPlugin(bool computeTask, const MirState *state, std::string name, ParticleVector *pv, int dumpEvery, std::string path);
+PairPlugin createDumpParticlesWithPolylinesPlugin(bool computeTask, const MirState *state, std::string name,
+                                                  ChainVector *ov, int dumpEvery,
+                                                  const std::vector<std::string>& channelNames, std::string path);
 
-PairPlugin createDumpObjStats(bool computeTask, const MirState *state, std::string name, ObjectVector *ov, int dumpEvery, std::string path);
+PairPlugin createDumpXYZPlugin(bool computeTask, const MirState *state, std::string name,
+                               ParticleVector *pv, int dumpEvery, std::string path);
 
-PairPlugin createExchangePVSFluxPlanePlugin(bool computeTask, const MirState *state, std::string name, ParticleVector *pv1, ParticleVector *pv2, real4 plane);
+PairPlugin createDumpObjStats(bool computeTask, const MirState *state, std::string name,
+                              ObjectVector *ov, int dumpEvery, std::string filename);
+
+PairPlugin createExchangePVSFluxPlanePlugin(bool computeTask, const MirState *state, std::string name,
+                                            ParticleVector *pv1, ParticleVector *pv2, real4 plane);
+
+PairPlugin createExpMovingAveragePlugin(bool computeTask, const MirState *state, std::string name, ParticleVector *pv,
+                                        real alpha, std::string srcChannelName, std::string emaChannelName);
+
+PairPlugin createExternalMagneticTorquePlugin(bool computeTask, const MirState *state, std::string name,
+                                              RigidObjectVector *rov, real3 moment,
+                                              std::function<real3(real)> magneticFunction);
 
 PairPlugin createForceSaverPlugin(bool computeTask,  const MirState *state, std::string name, ParticleVector *pv);
 
@@ -83,8 +121,8 @@ PairPlugin createImposeVelocityPlugin(bool computeTask,  const MirState *state, 
                                       std::vector<ParticleVector*> pvs, int every,
                                       real3 low, real3 high, real3 velocity);
 
-PairPlugin createMagneticOrientationPlugin(bool computeTask, const MirState *state, std::string name, RigidObjectVector *rov, real3 moment,
-                                           std::function<real3(real)> magneticFunction);
+PairPlugin createMagneticDipoleInteractionsPlugin(bool computeTask, const MirState *state, std::string name,
+                                                  RigidObjectVector *rov, real3 moment, real mu0, bool periodic);
 
 PairPlugin createMembraneExtraForcePlugin(bool computeTask, const MirState *state, std::string name, ParticleVector *pv, const std::vector<real3>& forces);
 
@@ -120,7 +158,16 @@ PairPlugin createVelocityControlPlugin(bool computeTask, const MirState *state, 
 
 PairPlugin createRdfPlugin(bool computeTask, const MirState *state, std::string name, ParticleVector *pv, real maxDist, int nbins, std::string basename, int every);
 
-PairPlugin createStatsPlugin(bool computeTask, const MirState *state, std::string name, std::string filename, int every);
+PairPlugin createRmacfPlugin(bool computeTask, const MirState *state, std::string name, ChainVector *cv,
+                             MirState::TimeType startTime, MirState::TimeType endTime, int dumpEvery, std::string path);
+
+PairPlugin createShearFieldPlugin(bool computeTask, const MirState *state, std::string name, ParticleVector *pv,
+                                  std::array<real,9> shear, real3 origin, std::string sfChannelName);
+
+PairPlugin createSinusoidalFieldPlugin(bool computeTask, const MirState *state, std::string name, ParticleVector *pv,
+                                       real magnitude, int waveNumber, std::string sfChannelName);
+
+PairPlugin createStatsPlugin(bool computeTask, const MirState *state, std::string name, int every, const std::vector<ParticleVector*>& pvs, std::string filename);
 
 PairPlugin createStressTensorPlugin(bool computeTask, const MirState *state, std::string name, ParticleVector *pv, int dumpEvery, std::string mask, std::string path);
 
@@ -140,35 +187,8 @@ PairPlugin createVelocityInletPlugin(bool computeTask, const MirState *state, st
 PairPlugin createWallRepulsionPlugin(bool computeTask, const MirState *state, std::string name, ParticleVector* pv, Wall* wall, real C, real h, real maxForce);
 
 PairPlugin createWallForceCollectorPlugin(bool computeTask, const MirState *state, std::string name, Wall *wall, ParticleVector* pvFrozen,
-                                          int sampleEvery, int dumpEvery, std::string filename);
+                                          int sampleEvery, int dumpEvery, std::string filename, bool detailedDump);
 
-
-/** \brief Construct a simulation & postprocess plugin pair given their ConfigObjects.
-    \param [in] computeTask True if the current rank is a compute rank, false otherwise.
-    \param [in] state The Mirheo state object.
-    \param [in,out] loader The \c Loader object. Provides load context and unserialization functions.
-    \param [in] sim The ConfigObject describing the simulation part of the plugin pair (optional).
-    \param [in] post The ConfigObject describing the postprocess part of the plugin pair (optional).
-
-    This factory function tries to match the given type names (`__type` field of ConfigObjects) with builtin plugins names.
-    If the match is found, the corresponding plugins are created and returned.
-    The \c ConfigObject arguments are optional, but at least one of them has to be given.
-    Depending on whether the current rank is a compute or a postprocess rank, the simulation or postprocess plugin will be created.
-
-    If the type names are not recognized, the factory returns null pointers.
-    The error should be diagnosed by the caller.
-
-    \return An optional-like 3-tuple (bool matchFound, simulation plugin shared pointer, postprocess plugin shared pointer).
- */
-PluginFactoryContainer::OptionalPluginPair loadPlugins(
-        bool computeTask, const MirState *state, Loader& loader,
-        const ConfigObject *sim = nullptr, const ConfigObject* post = nullptr);
-
-/// Helper type for registering `loadPlugins` to the core.
-struct PluginRegistrant
-{
-    PluginRegistrant();
-};
 
 } // namespace plugin_factory
 } // namespace mirheo

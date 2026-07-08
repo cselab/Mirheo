@@ -1,11 +1,11 @@
 // Copyright 2020 ETH Zurich. All Rights Reserved.
 #include "object_belonging.h"
 
-#include <mirheo/core/utils/kernel_launch.h>
 #include <mirheo/core/pvs/particle_vector.h>
 #include <mirheo/core/pvs/views/pv.h>
 #include <mirheo/core/pvs/object_vector.h>
 #include <mirheo/core/pvs/packers/particles.h>
+#include <mirheo/core/utils/kernel_launch.h>
 
 #include <mirheo/core/celllist.h>
 

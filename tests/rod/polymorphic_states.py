@@ -73,7 +73,7 @@ u.registerPlugins(mir.Plugins.createParticleDrag('rod_drag', rv, drag))
 
 dump_every = int (t_dump_every/dt)
 u.registerPlugins(mir.Plugins.createDumpParticles('rod_dump', rv, dump_every, ["states"], 'h5/rod_particles-'))
-
+#u.registerPlugins(mir.Plugins.createStats('stats', every=1000, filename="stats.csv"))
 u.run(int(t_end / dt), dt=dt)
 
 if rv is not None:
@@ -82,7 +82,7 @@ if rv is not None:
 
 del u
 
-# nTEST: rod.polymorphic_states.0.4
+# snTEST: rod.polymorphic_states.0.4
 # cd rod
 # rm -rf h5
 # mir.run --runargs "-n 2" ./polymorphic_states.py --fraction 0.4

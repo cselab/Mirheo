@@ -4,7 +4,7 @@ Walls
 #####
 
 Walls are used to represent time-independent stationary boundary conditions for the flows.
-They are described in the form of a `signed distance function <https://en.wikipedia.org/wiki/Signed_distance_function>`_, 
+They are described in the form of a `signed distance function <https://en.wikipedia.org/wiki/Signed_distance_function>`_,
 such that a zero-level isosurface defines the wall surface.
 No slip and no through boundary conditions are enforced on that surface by bouncing the particles off the wall surface.
 
@@ -23,22 +23,12 @@ the PVs manually set to be treated as frozen by :any:`Wall.attachFrozenParticles
 
 Summary
 ========
-.. automodsumm:: _mirheo.Walls
+.. automodsumm:: mmirheo.Walls
 
 Details
 ========
-.. automodule:: _mirheo.Walls
+.. automodule:: mmirheo.Walls
    :members:
    :show-inheritance:
    :undoc-members:
    :special-members: __init__
-
-
-
-
-
-
-
-
-
-    

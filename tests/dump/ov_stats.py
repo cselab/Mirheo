@@ -17,7 +17,7 @@ ic = mir.InitialConditions.Membrane(com_q)
 
 u.registerParticleVector(ov, ic)
 
-u.registerPlugins(mir.Plugins.createDumpObjectStats("objStats", ov, dump_every=1, path="stats"))
+u.registerPlugins(mir.Plugins.createDumpObjectStats("objStats", ov, dump_every=1, filename="stats/rbc.csv"))
 
 u.run(2, dt=0)
 

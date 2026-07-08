@@ -3,10 +3,10 @@
 
 #include <mirheo/core/datatypes.h>
 #include <mirheo/core/logger.h>
-#include <mirheo/core/utils/variant.h>
 
 #include <map>
 #include <string>
+#include <variant>
 #include <vector>
 
 namespace mirheo
@@ -20,7 +20,7 @@ class ParametersWrap
 {
 public:
     /// A variant that contains the possible types to represent parameters
-    using VarParam = mpark::variant<real, std::vector<real>, std::vector<real2>, std::string, bool>;
+    using VarParam = std::variant<real, std::vector<real>, std::vector<real2>, std::string, bool>;
     /// Represents the map from parameter names to parameter values
     using MapParams = std::map<std::string, VarParam>;
 
@@ -40,7 +40,7 @@ public:
         if (it == params_.end())
             return false;
 
-        if (!mpark::holds_alternative<T>(it->second))
+        if (!std::holds_alternative<T>(it->second))
             return false;
 
         return true;
@@ -79,11 +79,11 @@ private:
         if (it == params_.end())
             die("missing parameter '%s'", key.c_str());
 
-        if (!mpark::holds_alternative<T>(it->second))
+        if (!std::holds_alternative<T>(it->second))
             die("'%s': invalid type", key.c_str());
 
         readParams_[key] = true;
-        return mpark::get<T>(it->second);
+        return std::get<T>(it->second);
     }
 
     real2 _read(const std::string& key, Identity<real2>);

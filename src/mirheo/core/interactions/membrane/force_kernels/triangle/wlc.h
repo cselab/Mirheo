@@ -5,7 +5,6 @@
 
 #include <mirheo/core/utils/cpu_gpu_defines.h>
 #include <mirheo/core/utils/helper_math.h>
-#include <mirheo/core/utils/reflection.h>
 #include <mirheo/core/mesh/membrane.h>
 
 #include <cmath>
@@ -38,16 +37,28 @@ public:
         \param [in] lscale Scaling length factor, applied to all parameters
     */
     TriangleWLCForce(ParametersType p, const Mesh *mesh, mReal lscale) :
-        lscale_(lscale)
+        lscale_(1.0_mr)
     {
         x0_   = p.x0;
-        ks_   = p.ks * lscale_ * lscale_;
+        ks_   = p.ks;
         mpow_ = p.mpow;
 
-        kd_ = p.kd * lscale_ * lscale_;
+        kd_ = p.kd;
 
-        area0_   = p.totArea0 * lscale_ * lscale_ / mesh->getNtriangles();
+        area0_   = p.totArea0 / mesh->getNtriangles();
         length0_ = math::sqrt(area0_ * 4.0 / math::sqrt(3.0));
+
+        applyLengthScalingFactor(lscale);
+    }
+
+    /// Scale length-dependent parameters.
+    __HD__ void applyLengthScalingFactor(mReal lscale)
+    {
+        lscale_ *= lscale;
+        ks_ *= lscale * lscale;
+        kd_ *= lscale * lscale;
+        area0_ *= lscale * lscale;
+        length0_ *= lscale;
     }
 
     /** \brief Get the reference triangle information
@@ -133,10 +144,5 @@ private:
     mReal length0_, area0_; ///< only useful when StressFree is false
     mReal lscale_;
 };
-
-/// set type name
-MIRHEO_TYPE_NAME(TriangleWLCForce<StressFreeState::Active>, "TriangleWCLForce<Active>");
-/// set type name
-MIRHEO_TYPE_NAME(TriangleWLCForce<StressFreeState::Inactive>, "TriangleWCLForce<Inactive>");
 
 } // namespace mirheo

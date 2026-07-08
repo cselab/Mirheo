@@ -5,7 +5,6 @@
 #include <mirheo/core/logger.h>
 #include <mirheo/core/mirheo_state.h>
 #include <mirheo/core/utils/common.h>
-#include <mirheo/core/utils/config.h>
 
 #include <memory>
 #include <mpi.h>
@@ -28,7 +27,6 @@ class Bouncer;
 class Wall;
 class SimulationPlugin;
 class PostprocessPlugin;
-class LoaderContext;
 
 /// A tuple that contains the Simulation and Postprocess plugins parts
 using PairPlugin = std::pair<std::shared_ptr<SimulationPlugin>,
@@ -56,44 +54,25 @@ public:
         \param globalDomainSize The full domain dimensions in length units. Must be positive.
         \param logInfo Information about logging
         \param checkpointInfo Information about checkpoint
+        \param maxObjHalfLength Half of the maximum length of all objects.
         \param gpuAwareMPI \c true to use RDMA (must be compile with a MPI version that supports it)
-        \param units conversion factors from Mirheo to SI units
         \note MPI will be initialized internally.
               If this constructor is used, the destructor will also finalize MPI.
 
         The product of \p nranks3D must be equal to the number of available ranks (or hals if postprocess is used)
      */
     Mirheo(int3 nranks3D, real3 globalDomainSize,
-           LogInfo logInfo, CheckpointInfo checkpointInfo, bool gpuAwareMPI=false,
-           UnitConversion units = UnitConversion());
+           LogInfo logInfo, CheckpointInfo checkpointInfo,
+           real maxObjHalfLength, bool gpuAwareMPI=false);
 
     /** \brief Construct a \c Mirheo object using a given communicator.
         \note MPI will be NOT be initialized.
               If this constructor is used, the destructor will NOT finalize MPI.
      */
     Mirheo(MPI_Comm comm, int3 nranks3D, real3 globalDomainSize,
-           LogInfo logInfo, CheckpointInfo checkpointInfo, bool gpuAwareMPI=false,
-           UnitConversion units = UnitConversion());
+           LogInfo logInfo, CheckpointInfo checkpointInfo,
+           real maxObjHalfLength, bool gpuAwareMPI=false);
 
-    /** \brief Construct a \c Mirheo object from a snapshot using MPI_COMM_WORLD.
-        \param nranks3D Number of ranks along each cartesian direction.
-        \param snapshotPath The folder path containing the snapshot
-        \param logInfo Information about logging
-        \param gpuAwareMPI \c true to use RDMA (must be compile with a MPI version that supports it)
-        \note MPI will be initialized internally.
-              If this constructor is used, the destructor will also finalize MPI.
-
-        The product of \p nranks3D must be equal to the number of available ranks (or hals if postprocess is used)
-     */
-    Mirheo(int3 nranks3D, const std::string& snapshotPath,
-           LogInfo logInfo, bool gpuAwareMPI=false);
-
-    /** \brief Construct a \c Mirheo object from snapshot using a given communicator.
-        \note MPI will be NOT be initialized.
-              If this constructor is used, the destructor will NOT finalize MPI.
-     */
-    Mirheo(MPI_Comm comm, int3 nranks3D, const std::string& snapshotPath,
-           LogInfo logInfo, bool gpuAwareMPI=false);
 
     ~Mirheo();
 
@@ -122,39 +101,40 @@ public:
         \param pv The ParticleVector to register
         \param ic The InitialConditions that will be applied to \p pv when registered
     */
-    void registerParticleVector(const std::shared_ptr<ParticleVector>& pv, const std::shared_ptr<InitialConditions>& ic);
+    void registerParticleVector(std::shared_ptr<ParticleVector> pv,
+                                std::shared_ptr<InitialConditions> ic);
 
     /** \brief register an \c Interaction
         \param interaction the \c Interaction to register.
         \see setInteraction().
      */
-    void registerInteraction(const std::shared_ptr<Interaction>& interaction);
+    void registerInteraction(std::shared_ptr<Interaction> interaction);
 
     /** \brief register an \c Integrator
         \param integrator the \c Integrator to register.
         \see setIntegrator().
     */
-    void registerIntegrator(const std::shared_ptr<Integrator>& integrator);
+    void registerIntegrator(std::shared_ptr<Integrator> integrator);
 
     /** \brief register a \c Wall
         \param wall The \c Wall to register
         \param checkEvery The particles that will bounce against this wall will be checked (inside/outside log info)
                every this number of time steps. 0 means no check.
     */
-    void registerWall(const std::shared_ptr<Wall>& wall, int checkEvery=0);
+    void registerWall(std::shared_ptr<Wall> wall, int checkEvery=0);
 
     /** \brief register a \c Bouncer
         \param bouncer the \c Bouncer to register.
         \see setBouncer().
     */
-    void registerBouncer(const std::shared_ptr<Bouncer>& bouncer);
+    void registerBouncer(std::shared_ptr<Bouncer> bouncer);
 
     /** \brief register a SimulationPlugin
         \param simPlugin the SimulationPlugin to register (only relevant if the current rank is a compute task).
         \param postPlugin the PostprocessPlugin to register (only relevant if the current rank is a postprocess task).
     */
-    void registerPlugins(const std::shared_ptr<SimulationPlugin>& simPlugin,
-                         const std::shared_ptr<PostprocessPlugin>& postPlugin);
+    void registerPlugins(std::shared_ptr<SimulationPlugin> simPlugin,
+                         std::shared_ptr<PostprocessPlugin> postPlugin);
 
     /// More generic version of registerPlugins()
     void registerPlugins(const PairPlugin &plugins);
@@ -164,7 +144,7 @@ public:
         \param ov the associated ObjectVector (must be registered).
         \see applyObjectBelongingChecker()
     */
-    void registerObjectBelongingChecker(const std::shared_ptr<ObjectBelongingChecker>& checker, ObjectVector *ov);
+    void registerObjectBelongingChecker(std::shared_ptr<ObjectBelongingChecker> checker, ObjectVector *ov);
 
     /** \brief deregister an \c Integrator
         \param integrator the \c Integrator to deregister.
@@ -294,11 +274,6 @@ public:
     /// print the list of all compile options and their current value in the logs
     void logCompileOptions() const;
 
-    /** \brief Save snapshot of the Mirheo simulation to the given folder.
-        \param [in] path The target folder path.
-      */
-    void saveSnapshot(const std::string& path);
-
 private:
     std::unique_ptr<Simulation> sim_;
     std::unique_ptr<Postprocess> post_;
@@ -319,10 +294,8 @@ private:
     MPI_Comm interComm_ {MPI_COMM_NULL}; ///< intercommunicator between postprocess and simulation
 
     void init(int3 nranks3D, real3 globalDomainSize, LogInfo logInfo,
-              CheckpointInfo checkpointInfo, bool gpuAwareMPI,
-              UnitConversion units, LoaderContext *context = nullptr);
-    void initFromSnapshot(int3 nranks3D, const std::string& snapshotPath,
-                          LogInfo logInfo, bool gpuAwareMPI);
+              CheckpointInfo checkpointInfo, real maxObjHalfLength,
+              bool gpuAwareMPI);
     void initLogger(MPI_Comm comm, LogInfo logInfo);
     void sayHello();
     void setup();

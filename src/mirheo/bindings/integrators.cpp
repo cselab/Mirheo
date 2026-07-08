@@ -1,15 +1,14 @@
 // Copyright 2020 ETH Zurich. All Rights Reserved.
+#include "integrators.h"
+#include "class_wrapper.h"
+
 #include <mirheo/core/integrators/factory.h>
 #include <mirheo/core/interactions/interface.h>
 #include <mirheo/core/interactions/membrane/base_membrane.h>
 
-#include "bindings.h"
-#include "class_wrapper.h"
-
 #include <pybind11/stl.h>
 
-namespace mirheo
-{
+namespace mirheo {
 using namespace pybind11::literals;
 
 void exportIntegrators(py::module& m)
@@ -68,6 +67,29 @@ void exportIntegrators(py::module& m)
                     name: name of the integrator
             )");
 
+    py::handlers_class<IntegratorShear>(m, "Shear", pyint, R"(
+        Set the particles velocity to a linear shear velocity :math:`\mathbf{u} = E \mathbf{r}`.
+    )")
+        .def(py::init(&integrator_factory::createShear),
+             "state"_a, "name"_a, "shear"_a, "origin"_a, R"(
+                Args:
+                    name: name of the integrator
+                    shear: shear rate tensor (9 components)
+                    origin: point of zero velocity
+            )");
+
+    py::handlers_class<IntegratorShearPolChain>(m, "ShearPolChain", pyint, R"(
+        Set the particles velocity to a linear shear velocity :math:`\mathbf{u} = E \mathbf{r}`.
+        Also advance the polymeric chain vectors of the particles with forwards Euler.
+    )")
+        .def(py::init(&integrator_factory::createShearPolChain),
+             "state"_a, "name"_a, "shear"_a, "origin"_a, R"(
+                Args:
+                    name: name of the integrator
+                    shear: shear rate tensor (9 components)
+                    origin: point of zero velocity
+            )");
+
     py::handlers_class<IntegratorTranslate>(m, "Translate", pyint, R"(
         Translate particles with a constant velocity :math:`\mathbf{u}` regardless forces acting on them.
     )")
@@ -111,6 +133,17 @@ void exportIntegrators(py::module& m)
                 Args:
                     name: name of the integrator
                     force: :math:`\mathbf{F}_{extra}`
+            )");
+
+    py::handlers_class<IntegratorVVPolChain>
+        (m, "VelocityVerletPolChain", pyint, R"(
+            Same as regular :any:`VelocityVerlet` with evolution of polymeric chain vector.
+        )")
+        .def(py::init(&integrator_factory::createVVPolChain),
+             "state"_a, "name"_a, R"(
+
+                Args:
+                    name: name of the integrator
             )");
 
     py::handlers_class<IntegratorVV<ForcingTermPeriodicPoiseuille>>

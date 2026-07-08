@@ -75,4 +75,10 @@ bool createFoldersCollective(const MPI_Comm& comm, std::string path);
  */
 std::string setExtensionOrDie(std::string path, const std::string ext);
 
+/** \brief Copy a file.
+    \param srcFilename The name of the file to copy.
+    \param dstFilename The name of the destination file.
+ */
+void copyFile(const std::string& srcFilename, const std::string& dstFilename);
+
 } // namespace mirheo

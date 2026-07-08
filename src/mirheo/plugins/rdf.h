@@ -36,6 +36,7 @@ public:
         \param [in] computeEvery The number of time steps between two RDF evaluations and dump.
     */
     RdfPlugin(const MirState *state, std::string name, std::string pvName, real maxDist, int nbins, int computeEvery);
+
     ~RdfPlugin();
 
     void setup(Simulation *simulation, const MPI_Comm& comm, const MPI_Comm& interComm) override;

@@ -12,8 +12,6 @@ StepRandomGen::StepRandomGen(long seed) :
     lastSample = udistr(gen);
 }
 
-StepRandomGen::~StepRandomGen() = default;
-
 real StepRandomGen::generate(const MirState *state)
 {
     if (state->currentTime != lastTime)

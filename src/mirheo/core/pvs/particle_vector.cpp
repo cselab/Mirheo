@@ -3,7 +3,6 @@
 #include "checkpoint/helpers.h"
 #include "restart/helpers.h"
 
-#include <mirheo/core/snapshot.h>
 #include <mirheo/core/utils/cuda_common.h>
 #include <mirheo/core/utils/path.h>
 #include <mirheo/core/xdmf/type_map.h>
@@ -126,70 +125,6 @@ ParticleVector::ParticleVector(const MirState *state, const std::string& name, r
 
 ParticleVector::~ParticleVector() = default;
 
-std::vector<int64_t> ParticleVector::getIndices_vector()
-{
-    auto& pos = local()->positions();
-    auto& vel = local()->velocities();
-    pos.downloadFromDevice(defaultStream, ContainersSynch::Asynch);
-    vel.downloadFromDevice(defaultStream);
-
-    std::vector<int64_t> res(pos.size());
-
-    for (size_t i = 0; i < pos.size(); i++)
-    {
-        Particle p (pos[i], vel[i]);
-        res[i] = p.getId();
-    }
-
-    return res;
-}
-
-py_types::VectorOfReal3 ParticleVector::getCoordinates_vector()
-{
-    auto& pos = local()->positions();
-    pos.downloadFromDevice(defaultStream);
-
-    py_types::VectorOfReal3 res(pos.size());
-    for (size_t i = 0; i < pos.size(); i++)
-    {
-        real3 r = make_real3(pos[i]);
-        r = getState()->domain.local2global(r);
-        res[i] = { r.x, r.y, r.z };
-    }
-
-    return res;
-}
-
-py_types::VectorOfReal3 ParticleVector::getVelocities_vector()
-{
-    auto& vel = local()->velocities();
-    vel.downloadFromDevice(defaultStream);
-
-    py_types::VectorOfReal3 res(vel.size());
-    for (size_t i = 0; i < vel.size(); i++)
-    {
-        real3 u = make_real3(vel[i]);
-        res[i] = { u.x, u.y, u.z };
-    }
-
-    return res;
-}
-
-py_types::VectorOfReal3 ParticleVector::getForces_vector()
-{
-    HostBuffer<Force> forces;
-    forces.copy(local()->forces(), defaultStream);
-
-    py_types::VectorOfReal3 res(forces.size());
-    for (size_t i = 0; i < forces.size(); i++)
-    {
-        real3 f = forces[i].f;
-        res[i] = { f.x, f.y, f.z };
-    }
-
-    return res;
-}
-
 void ParticleVector::setCoordinates_vector(const std::vector<real3>& coordinates)
 {
     auto& pos = local()->positions();
@@ -249,27 +184,6 @@ void ParticleVector::setForces_vector(const std::vector<real3>& forces)
     local()->forces().uploadToDevice(defaultStream);
 }
 
-void ParticleVector::updateChannel(const std::string channelName, const std::vector<real3> values)
-{
-    PinnedBuffer<real3>* container = local()->dataPerParticle.getData<real3>(channelName);
-
-    const size_t n = container->size();
-    if(values.size() != n){
-        throw std::invalid_argument("New Array of size: " + std::to_string(values.size()) + 
-        " not the same size as " + channelName + 
-        ": " + std::to_string(n) + "\n");
-    }
-
-    for(size_t i = 0; i < n; ++i){
-        (*container)[i].x = values[i].x;
-        (*container)[i].y = values[i].y;
-        (*container)[i].z = values[i].z;
-    }
-    
-    container->uploadToDevice(defaultStream);
-}
-
-
 void ParticleVector::_snapshotParticleData(MPI_Comm comm, const std::string& filename)
 {
     CUDA_Check( cudaDeviceSynchronize() );
@@ -300,13 +214,13 @@ void ParticleVector::_snapshotParticleData(MPI_Comm comm, const std::string& fil
                                                                   blackList);
 
     channels.push_back(XDMF::Channel{channel_names::XDMF::velocity, velocities.data(),
-                                         XDMF::Channel::DataForm::Vector,
+                                         XDMF::Channel::Vector{},
                                          XDMF::getNumberType<real>(),
                                          DataTypeWrapper<real>(),
                                          XDMF::Channel::NeedShift::False});
 
     channels.push_back(XDMF::Channel{channel_names::XDMF::ids, ids.data(),
-                                         XDMF::Channel::DataForm::Scalar,
+                                         XDMF::Channel::Scalar{},
                                          XDMF::Channel::NumberType::Int64,
                                          DataTypeWrapper<int64_t>(),
                                          XDMF::Channel::NeedShift::False});
@@ -380,29 +294,6 @@ void ParticleVector::restart(MPI_Comm comm, const std::string& path)
     constexpr int particleChunkSize = 1;
     const auto ms = _restartParticleData(comm, path, particleChunkSize);
     local()->resize(ms.newSize, defaultStream);
-}
-
-void ParticleVector::saveSnapshotAndRegister(Saver& saver)
-{
-    saver.registerObject<ParticleVector>(this, _saveSnapshot(saver, "ParticleVector"));
-}
-
-ConfigObject ParticleVector::_saveSnapshot(Saver& saver, const std::string& typeName)
-{
-    // The filename does not include the extension.
-    std::string filename = joinPaths(saver.getContext().path, getName() + "." + RestartPVIdentifier);
-    _snapshotParticleData(saver.getContext().groupComm, filename);
-    ConfigObject config = MirSimulationObject::_saveSnapshot(
-            saver, "ParticleVector", typeName);
-    config.emplace("mass", saver(mass_));
-    return config;
-}
-
-ParticleVector::ParticleVector(const MirState *state, Loader&, const ConfigObject& config) :
-    ParticleVector{state, (const std::string&)config["name"], (real)config["mass"]}
-{
-    assert(config["__type"].getString() == "ParticleVector");
-    // Note: Particles loaded by RestartIC.
 }
 
 } // namespace mirheo

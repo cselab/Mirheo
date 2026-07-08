@@ -79,11 +79,11 @@ __global__ void findPolymorphicStates(RVview view, GPU_RodBiSegmentParameters<Ns
 
     const int nBiSegments = view.nSegments - 1;
 
-    for (int biSegmentId = tid; biSegmentId < nBiSegments; ++biSegmentId)
+    for (int biSegmentId = tid; biSegmentId < nBiSegments; biSegmentId += blockDim.x)
     {
         rReal2 k0, k1;
         rReal tau, l;
-        int i = rodId * nBiSegments + biSegmentId;
+        const int i = rodId * nBiSegments + biSegmentId;
 
         fetchBisegmentData(i, kappa, tau_l, k0, k1, tau, l);
 
@@ -93,7 +93,7 @@ __global__ void findPolymorphicStates(RVview view, GPU_RodBiSegmentParameters<Ns
         #pragma unroll
         for (int s = 1; s < Nstates; ++s)
         {
-            rReal Es = computeEnergy(l, k0, k1, tau, s, params);
+            const rReal Es = computeEnergy(l, k0, k1, tau, s, params);
             if (Es < E)
             {
                 E = Es;
@@ -108,9 +108,9 @@ __global__ void findPolymorphicStates(RVview view, GPU_RodBiSegmentParameters<Ns
 template <int Nstates>
 __device__ inline int randomOtherState(int current, real seed)
 {
-    real u = Saru::uniform01(seed, threadIdx.x, 123456 * current + 98765 * blockIdx.x );
-    unsigned int r = static_cast<unsigned int>(4294967295.0_r * u);
-    int s = r % (Nstates - 1);
+    const real u = Saru::uniform01(seed, threadIdx.x, 123456 * current + 98765 * blockIdx.x );
+    const unsigned int r = static_cast<unsigned int>(4294967295.0_r * u);
+    const int s = r % (Nstates - 1);
     return s >= current ? (s + 1) % Nstates : s;
 }
 
@@ -120,17 +120,17 @@ __device__ inline int acceptReject(int sprev, int scurrent, int snext,
                                    const GPU_RodBiSegmentParameters<Nstates>& params,
                                    const GPU_SpinParameters& spinParams)
 {
-    int sother = randomOtherState<Nstates>(scurrent, spinParams.seed);
+    const int sother = randomOtherState<Nstates>(scurrent, spinParams.seed);
 
-    real Ecurrent = computeEnergy(l, k0, k1, tau, scurrent, params)
+    const real Ecurrent = computeEnergy(l, k0, k1, tau, scurrent, params)
         + spinParams.J * (math::abs(scurrent-sprev) + math::abs(scurrent-snext));
 
-    real Eother   = computeEnergy(l, k0, k1, tau, sother  , params)
+    const real Eother   = computeEnergy(l, k0, k1, tau, sother  , params)
         + spinParams.J * (math::abs(sother  -sprev) + math::abs(sother  -snext));
 
-    real dE = Eother - Ecurrent;
+    const real dE = Eother - Ecurrent;
 
-    real u = Saru::uniform01(spinParams.seed, 12345 * threadIdx.x - 6789, 123456 * sother + 98765 * blockIdx.x );
+    const real u = Saru::uniform01(spinParams.seed, 12345 * threadIdx.x - 6789, 123456 * sother + 98765 * blockIdx.x );
 
     if (spinParams.kBT < 1e-6)
         return dE < 0 ? sother : scurrent;
@@ -154,7 +154,7 @@ __global__ void findPolymorphicStatesMCStep(RVview view, GPU_RodBiSegmentParamet
 
     for (int biSegmentId = tid; biSegmentId < nBiSegments; biSegmentId += blockDim.x)
     {
-        int i = rodId * nBiSegments + biSegmentId;
+        const int i = rodId * nBiSegments + biSegmentId;
         states[biSegmentId] = view.states[i];
     }
 
@@ -168,13 +168,13 @@ __global__ void findPolymorphicStatesMCStep(RVview view, GPU_RodBiSegmentParamet
 
             rReal2 k0, k1;
             rReal tau, l;
-            int i = rodId * nBiSegments + biSegmentId;
+            const int i = rodId * nBiSegments + biSegmentId;
 
             fetchBisegmentData(i, kappa, tau_l, k0, k1, tau, l);
 
-            int scurrent = states[biSegmentId];
-            int sprev = states[math::max(biSegmentId - 1, 0            )];
-            int snext = states[math::min(biSegmentId + 1, nBiSegments-1)];
+            const int scurrent = states[biSegmentId];
+            const int sprev = states[math::max(biSegmentId - 1, 0            )];
+            const int snext = states[math::min(biSegmentId + 1, nBiSegments-1)];
 
             states[biSegmentId] = acceptReject(sprev, scurrent, snext,
                                                k0, k1, tau, l, params, spinParams);
@@ -192,7 +192,7 @@ __global__ void findPolymorphicStatesMCStep(RVview view, GPU_RodBiSegmentParamet
 
     for (int biSegmentId = tid; biSegmentId < nBiSegments; biSegmentId += blockDim.x)
     {
-        int i = rodId * nBiSegments + biSegmentId;
+        const int i = rodId * nBiSegments + biSegmentId;
         view.states[i] = states[biSegmentId];
     }
 }

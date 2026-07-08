@@ -22,7 +22,7 @@ domain = (16, 8, 8)
 nsteps = 5000
 
 u = mir.Mirheo(args.ranks, domain, debug_level=3, log_filename='log', no_splash=True,
-               checkpoint_every = (0 if args.restart else nsteps))
+               checkpoint_every = (0 if args.restart else nsteps), max_obj_half_length=np.max(axes))
 
 pv_sol = mir.ParticleVectors.ParticleVector('solvent', mass = 1)
 ic_sol = mir.InitialConditions.Uniform(density)
@@ -64,7 +64,7 @@ u.registerBouncer(bb)
 u.setBouncer(bb, pv_ell, pv_sol)
 
 u.registerPlugins(mir.Plugins.createDumpParticles('partDump', pv_ell, 500, [], "h5/ell"))
-u.registerPlugins(mir.Plugins.createDumpObjectStats("objStats", ov=pv_ell, dump_every=500, path="stats"))
+u.registerPlugins(mir.Plugins.createDumpObjectStats("objStats", ov=pv_ell, dump_every=500, filename="stats/ellipsoid.csv"))
 
 if args.restart:
     u.restart("restart")

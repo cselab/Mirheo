@@ -24,7 +24,7 @@ using integer = int32_t; ///< represents an integer number
 
 using real2 = vec_traits::Vec<real, 2>::Type; ///< a pair of real numbers
 using real3 = vec_traits::Vec<real, 3>::Type; ///< three real numbers
-using real4 = vec_traits::Vec<real, 4>::Type; ///< faour real numbers
+using real4 = vec_traits::Vec<real, 4>::Type; ///< four real numbers
 
 inline namespace unit_literals
 {
@@ -59,10 +59,15 @@ struct __align__(16) Real3_int
     real3 v;   ///< vector part
     integer i; ///< integer part
 
-    /// a special value used to mark particles;
-    /// useful e.g. to mark particles that must leave the domain
+    /** \brief A special value used to mark particles.
 
-    static constexpr real mark_val = -900._r;
+        Marked particles will be deleted during cell list rebuild. For objects,
+        objects with all particles marked will be removed during object
+        redistribution.
+    */
+    static constexpr real mark_val = -8.0e10_r;
+    static_assert((float)mark_val == (double)mark_val,
+                  "pick a value that is equal in single and double precision");
 
     /// copy constructor
     __HD__ inline Real3_int(const Real3_int& x)

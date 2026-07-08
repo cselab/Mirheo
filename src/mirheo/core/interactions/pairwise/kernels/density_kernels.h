@@ -27,10 +27,8 @@ public:
         return normalization_ * rm * rm * invrc;
     }
 private:
-    static constexpr real normalization_ = 15.0 / (2.0 * M_PI);
+    static constexpr real normalization_ = static_cast<real>(15.0 / (2.0 * M_PI));
 };
-/// create type name
-MIRHEO_TYPE_NAME_AUTO(SimpleMDPDDensityKernel);
 
 /// Density kernel from Wendland C2 function
 class WendlandC2DensityKernel
@@ -64,10 +62,8 @@ public:
     }
 
 private:
-    static constexpr real normalization_ = 21.0 / (2.0 * M_PI);
+    static constexpr real normalization_ = static_cast<real>(21.0 / (2.0 * M_PI));
 };
-/// create type name
-MIRHEO_TYPE_NAME_AUTO(WendlandC2DensityKernel);
 
 
 } // namespace mirheo

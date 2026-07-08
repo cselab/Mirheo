@@ -121,12 +121,6 @@ protected:
     /// see send()
     void _send(const void *data, size_t sizeInBytes);
 
-    /** \brief Implementation of the snapshot saving. Reusable by potential derived classes.
-        \param [in,out] saver The \c Saver object. Provides save context and serialization functions.
-        \param [in] typeName The name of the type being saved.
-      */
-    ConfigObject _saveSnapshot(Saver& saver, const std::string& typeName);
-
 private:
     int localSendSize_;
     MPI_Request sizeReq_;
@@ -166,11 +160,6 @@ public:
     virtual void deserialize() = 0;
 
 protected:
-    /** \brief Implementation of the snapshot saving. Reusable by potential derived classes.
-        \param [in,out] saver The \c Saver object. Provides save context and serialization functions.
-        \param [in] typeName The name of the type being saved.
-      */
-    ConfigObject _saveSnapshot(Saver& saver, const std::string& typeName);
 
     std::vector<char> data_; ///< will hold the data sent by the associated SimulationPlugin
 private:

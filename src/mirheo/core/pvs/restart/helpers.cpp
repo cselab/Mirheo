@@ -26,10 +26,11 @@ struct getVarTypeVisitor
     {
         switch(ncomp)
         {
-        case 2:  return std::vector<float2>{}; break;
-        case 3:  return std::vector<float3>{}; break;
-        case 4:  return std::vector<float4>{}; break;
-        default: return std::vector<float>{}; break;
+        case 1: return std::vector<float>{};
+        case 2: return std::vector<float2>{};
+        case 3: return std::vector<float3>{};
+        case 4: return std::vector<float4>{};
+        default: die("unexpected ncomp %d", ncomp);
         }
     }
 
@@ -37,9 +38,11 @@ struct getVarTypeVisitor
     {
         switch(ncomp)
         {
-        case 3:  return std::vector<double3>{}; break;
-        case 4:  return std::vector<double4>{}; break;
-        default: return std::vector<double4>{}; break;
+        case 1: return std::vector<double>{};
+        case 2: return std::vector<double2>{};
+        case 3: return std::vector<double3>{};
+        case 4: return std::vector<double4>{};
+        default: die("unexpected ncomp %d", ncomp);
         }
     }
 };
@@ -56,9 +59,9 @@ ListData readData(const std::string& filename, MPI_Comm comm, int chunkSize)
     {
         const bool needShift = desc.needShift == XDMF::Channel::NeedShift::True;
         const int ncomp      = XDMF::dataFormToNcomponents(desc.dataForm);
-        auto varVec = mpark::visit(details::getVarTypeVisitor{ncomp}, desc.type);
+        auto varVec = std::visit(details::getVarTypeVisitor{ncomp}, desc.type);
 
-        mpark::visit([&](auto& dstVec)
+        std::visit([&](auto& dstVec)
         {
             using T = typename std::remove_reference<decltype(dstVec)>::type::value_type;
             auto srcData = reinterpret_cast<const T*>(desc.data);
@@ -204,7 +207,7 @@ void exchangeListData(MPI_Comm comm, const ExchMap& map, ListData& listData, int
     for (auto& entry : listData)
     {
         debug2("exchange channel '%s'", entry.name.c_str());
-        mpark::visit([&](auto& data)
+        std::visit([&](auto& data)
         {
             exchangeData(comm, map, data, chunkSize);
         }, entry.data);
@@ -217,7 +220,7 @@ void requireExtraDataPerParticle(const ListData& listData, ParticleVector *pv)
     {
         auto shiftMode = entry.needShift ? DataManager::ShiftMode::Active : DataManager::ShiftMode::None;
 
-        mpark::visit([&](const auto& srcData)
+        std::visit([&](const auto& srcData)
         {
             using T = typename std::remove_reference<decltype(srcData)>::type::value_type;
 
@@ -232,7 +235,7 @@ void requireExtraDataPerObject(const ListData& listData, ObjectVector *ov)
     {
         auto shiftMode = entry.needShift ? DataManager::ShiftMode::Active : DataManager::ShiftMode::None;
 
-        mpark::visit([&](const auto& srcData)
+        std::visit([&](const auto& srcData)
         {
             using T = typename std::remove_reference<decltype(srcData)>::type::value_type;
 
@@ -249,7 +252,7 @@ void copyAndShiftListData(const DomainInfo domain,
     {
         auto channelDesc = &dataManager.getChannelDescOrDie(entry.name);
 
-        mpark::visit([&](const auto& srcData)
+        std::visit([&](const auto& srcData)
         {
             using T = typename std::remove_reference<decltype(srcData)>::type::value_type;
             auto& dstData = *dataManager.getData<T>(entry.name);

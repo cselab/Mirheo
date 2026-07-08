@@ -107,6 +107,7 @@ Additional compile options are provided through ``cmake``:
 * ``MIR_ROD_DOUBLE:BOOL=OFF``:  Computes rod forces (see :any:`RodForces`) in double precision if set to ``ON``; default: single precision
 * ``MIR_DOUBLE_PRECISION:BOOL=OFF``:  Use double precision everywhere if set to ``ON`` (including membrane forces and rod forces); default: single precision
 * ``MIR_USE_NVTX:BOOL=OFF``: Add NVIDIA Tools Extension (NVTX) trace support for more profiling informations if set to ``ON``; default: no NVTX
+* ``MIR_ENABLE_STACKTRACE:BOOL=ON``: If set to ``ON``, prints the full stacktrace (using libbfd) on failure; If libbfd is not installed, set this option to OFF; default: print the stacktrace
 
 .. note::
 

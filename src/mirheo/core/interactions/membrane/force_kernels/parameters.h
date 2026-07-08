@@ -2,7 +2,6 @@
 #pragma once
 
 #include <mirheo/core/datatypes.h>
-#include <mirheo/core/utils/reflection.h>
 
 namespace mirheo
 {
@@ -32,8 +31,6 @@ struct CommonMembraneParameters
     real totArea0;   ///< Total area at equilibrium
     real totVolume0; ///< Total volume at equilibrium
 };
-MIRHEO_MEMBER_VARS(CommonMembraneParameters, ka, kv, gammaC, kBT,
-                   totArea0, totVolume0);
 
 /// structure containing WLC bond + local area energy parameters
 struct WLCParameters
@@ -48,7 +45,6 @@ struct WLCParameters
     real kd;           ///< local area energy
     real totArea0;     ///< equilibrium totalarea (not used for stress free case, used to compute eq length and local areas)
 };
-MIRHEO_MEMBER_VARS(WLCParameters, x0, ks, mpow, kd, totArea0);
 
 /// structure containing Lim shear energy parameters
 struct LimParameters
@@ -65,7 +61,6 @@ struct LimParameters
     real b2; ///< non linear coefficient
     real totArea0; ///< equilibrium total area (not used for stress free case, used to compute eq length and local areas)
 };
-MIRHEO_MEMBER_VARS(LimParameters, ka, a3, a4, mu, b1, b2, totArea0);
 
 /// structure containing Kanto bending parameters
 struct KantorBendingParameters
@@ -75,7 +70,6 @@ struct KantorBendingParameters
     real kb;    ///< bending energy magnitude
     real theta; ///< equilibrium dihedral angle
 };
-MIRHEO_MEMBER_VARS(KantorBendingParameters, kb, theta);
 
 /// structure containing Juelicher bending + ADE parameters
 struct JuelicherBendingParameters
@@ -87,6 +81,5 @@ struct JuelicherBendingParameters
     real kad; ///< area-difference energy magnitude
     real DA0; ///< equilibrium area difference
 };
-MIRHEO_MEMBER_VARS(JuelicherBendingParameters, kb, C0, kad, DA0);
 
 } // namespace mirheo

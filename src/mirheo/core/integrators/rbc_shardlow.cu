@@ -6,11 +6,11 @@
 #include <mirheo/core/pvs/membrane_vector.h>
 #include <mirheo/core/pvs/views/ov.h>
 #include <mirheo/core/utils/common.h>
-#include <mirheo/core/utils/config.h>
 #include <mirheo/core/utils/cuda_common.h>
 #include <mirheo/core/utils/cuda_rng.h>
 #include <mirheo/core/utils/kernel_launch.h>
 
+#include <algorithm>
 #include <memory>
 
 namespace mirheo
@@ -145,7 +145,7 @@ void IntegratorSubStepShardlowSweep::execute(ParticleVector *pv, cudaStream_t st
     slowForces_.copyFromDevice(pv->local()->forces(), stream);
 
     // initialize the forces for the first half step
-    fastForces_->local(pv, pv, pv, nullptr, nullptr, nullptr, stream);
+    fastForces_->local(pv, pv, nullptr, nullptr, stream);
 
     // save previous positions
     previousPositions_.copyFromDevice(pv->local()->positions(), stream);
@@ -168,7 +168,7 @@ void IntegratorSubStepShardlowSweep::execute(ParticleVector *pv, cudaStream_t st
             pvView, dt_2m, dt);
 
         pv->local()->forces().copy(slowForces_, stream);
-        fastForces_->local(pv, pv, pv, nullptr, nullptr, nullptr, stream);
+        fastForces_->local(pv, pv, nullptr, nullptr, stream);
 
         SAFE_KERNEL_LAUNCH(
             rbc_shardlow_kernels::velocityVerletStep2,
@@ -187,7 +187,7 @@ void IntegratorSubStepShardlowSweep::setPrerequisites(ParticleVector *pv)
     if (auto *mv = dynamic_cast<MembraneVector*>(pv))
     {
         // luckily do not need cell lists for self interactions
-        fastForces_->setPrerequisites(pv, pv, pv, nullptr, nullptr, nullptr);
+        fastForces_->setPrerequisites(pv, pv, nullptr, nullptr);
 
         auto mesh = dynamic_cast<MembraneMesh*>(mv->mesh.get());
         assert(mesh);
@@ -210,11 +210,16 @@ void IntegratorSubStepShardlowSweep::_viscousSweeps(MembraneVector *mv, cudaStre
 
     const auto edgeSets = pvToEdgeSets_[mv->getName()].get();
 
+    // loop over colors in a random order at every sweep
+    colorIds_.resize(edgeSets->numColors());
+    std::iota(colorIds_.begin(), colorIds_.end(), 0);
+    std::shuffle(colorIds_.begin(), colorIds_.end(), rnd_);
+
     for (int sweep = 0; sweep < nsweeps_; ++sweep)
     {
         std::uniform_real_distribution<real> u(0.0_r, 1.0_r);
 
-        for (int color = 0; color < edgeSets->numColors(); ++color)
+        for (int color : colorIds_)
         {
             const real seed = u(rnd_);
             const auto& edges = edgeSets->edgeSet(color);

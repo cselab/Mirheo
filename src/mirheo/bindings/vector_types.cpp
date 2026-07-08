@@ -1,5 +1,5 @@
 // Copyright 2020 ETH Zurich. All Rights Reserved.
-#include "bindings.h"
+#include "vector_types.h"
 #include "class_wrapper.h"
 
 #include <mirheo/core/datatypes.h>

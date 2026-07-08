@@ -1,12 +1,13 @@
 // Copyright 2020 ETH Zurich. All Rights Reserved.
-#include <pybind11/stl.h>
-#include <pybind11/numpy.h>
-#include <pybind11/functional.h>
+
+#include "plugins.h"
+#include "class_wrapper.h"
 
 #include <mirheo/plugins/factory.h>
 
-#include "bindings.h"
-#include "class_wrapper.h"
+#include <pybind11/stl.h>
+#include <pybind11/numpy.h>
+#include <pybind11/functional.h>
 
 namespace mirheo
 {
@@ -23,6 +24,17 @@ void exportPlugins(py::module& m)
         Base postprocess plugin class
     )");
 
+
+    m.def("__createAddFourRollMillForce", &plugin_factory::createAddFourRollMillForcePlugin,
+          "compute_task"_a, "state"_a, "name"_a, "pv"_a, "intensity"_a, R"(
+        This plugin will add a force :math:`\mathbf{f} = (A \sin x \cos y, A \cos x \sin y, 0)` to each particle of a specific PV every time-step.
+
+        Args:
+            name: name of the plugin
+            pv: :any:`ParticleVector` that we'll work with
+            intensity: The intensity of the force
+    )");
+
     m.def("__createAddForce", &plugin_factory::createAddForcePlugin,
           "compute_task"_a, "state"_a, "name"_a, "pv"_a, "force"_a, R"(
         This plugin will add constant force :math:`\mathbf{F}_{extra}` to each particle of a specific PV every time-step.
@@ -32,6 +44,83 @@ void exportPlugins(py::module& m)
             name: name of the plugin
             pv: :any:`ParticleVector` that we'll work with
             force: extra force
+    )");
+
+    m.def("__createAddForceField",
+          py::overload_cast<bool,const MirState*,std::string,ParticleVector*,std::function<real3(real3)>,real3>
+          (&plugin_factory::createAddForceFieldPlugin),
+          "compute_task"_a, "state"_a, "name"_a, "pv"_a, "force_field"_a, "h"_a, R"(
+        Add a force to each particle of a specific PV every time-step.
+
+        Args:
+            name: name of the plugin
+            pv: :any:`ParticleVector` that we'll work with
+            force_field: force field
+            h: grid spacing used to discretize the force field
+    )");
+
+    m.def("__createAddForceField",
+          py::overload_cast<bool,const MirState*,std::string,ParticleVector*,std::string,real3>
+          (&plugin_factory::createAddForceFieldPlugin),
+          "compute_task"_a, "state"_a, "name"_a, "pv"_a, "force_field_filename"_a, "h"_a, R"(
+        Add a force to each particle of a specific PV every time-step.
+
+        Args:
+            name: name of the plugin
+            pv: :any:`ParticleVector` that we'll work with
+            force_field_filename: file that contains the force field on a cartesian grid. Same format as Sdf for walls but with 4 components per grid point (only the first three are used).
+            h: grid spacing used to discretize the force field
+    )");
+
+    m.def("__createAddPotentialForce",
+          py::overload_cast<bool,const MirState*,std::string,ParticleVector*,std::function<real(real3)>,real3>
+          (&plugin_factory::createAddPotentialForcePlugin),
+          "compute_task"_a, "state"_a, "name"_a, "pv"_a, "potential_field"_a, "h"_a, R"(
+        Add a force :math:`\mathbf{F}_{extra}` to each particle of a specific PV every time-step.
+        The force is the negative gradient of a potential field at the particle position.
+
+        Args:
+            name: name of the plugin
+            pv: :any:`ParticleVector` that we'll work with
+            potential_field: potential field
+            h: grid spacing used to discretize the potential field
+    )");
+
+    m.def("__createAddPotentialForce",
+          py::overload_cast<bool,const MirState*,std::string,ParticleVector*,std::string,real3>
+          (&plugin_factory::createAddPotentialForcePlugin),
+          "compute_task"_a, "state"_a, "name"_a, "pv"_a, "potential_field_filename"_a, "h"_a, R"(
+        Add a force :math:`\mathbf{F}_{extra}` to each particle of a specific PV every time-step.
+        The force is the negative gradient of a potential field at the particle position.
+
+        Args:
+            name: name of the plugin
+            pv: :any:`ParticleVector` that we'll work with
+            potential_field_filename: file that contains the potential field on a cartesian grid. Same format as Sdf for walls.
+            h: grid spacing used to discretize the potential field
+    )");
+
+    m.def("__createAddReversePoiseuilleForce", &plugin_factory::createAddReversePoiseuilleForcePlugin,
+          "compute_task"_a, "state"_a, "name"_a, "pv"_a, "force"_a, "flip_direction"_a, R"(
+        This plugin will add constant force :math:`\mathbf{F}_{extra}` to each particle of a specific PV every time-step.
+        The force is flipped if the position is in the upper half along the flip_direction.
+
+        Args:
+            name: name of the plugin
+            pv: :any:`ParticleVector` that we'll work with
+            force: extra force
+            flip_direction: either x, y or z. The direction along with the sign of the force changes.
+    )");
+
+    m.def("__createAddSinusoidalForce", &plugin_factory::createAddSinusoidalForcePlugin,
+          "compute_task"_a, "state"_a, "name"_a, "pv"_a, "magnitude"_a, "wave_number"_a, R"(
+        This plugin will add sinusoidal force :math:`\mathbf{F}(\mathbf{r}) = A \sin\left( 2\pi k r_y / L_y\right)` to each particle of a specific PV every time-step, where :math:`L_y` is the dimension of the domain along :math`y`.
+
+        Args:
+            name: name of the plugin
+            pv: :any:`ParticleVector` that we'll work with
+            magnitude: coefficient :math:`A`
+            wave_number: mode :math:`k` (integer)
     )");
 
     m.def("__createAddTorque", &plugin_factory::createAddTorquePlugin,
@@ -61,7 +150,7 @@ void exportPlugins(py::module& m)
 
     m.def("__createBerendsenThermostat", &plugin_factory::createBerendsenThermostatPlugin,
           "compute_task"_a, "state"_a, "name"_a, "pvs"_a,
-          "tau"_a, "T"_a=0, "kBT"_a=0, "increaseIfLower"_a=true, R"(
+          "tau"_a, "kBT"_a, "increaseIfLower"_a=true, R"(
         Berendsen thermostat.
 
         On each time step the velocities of all particles in given particle vectors are multiplied by the following factor:
@@ -79,11 +168,8 @@ void exportPlugins(py::module& m)
             name: name of the plugin
             pvs: list of :any:`ParticleVector` objects to apply the thermostat to
             tau: relaxation time :math:`\tau`
-            T: target temperature :math:`T_0`. Can be used only if unit conversion factors are known (see :any:`set_unit_registry`). (*)
-            kBT: target thermal energy :math:`k_B T_0` (*)
+            kBT: target thermal energy :math:`k_B T_0`
             increaseIfLower: whether to increase the temperature if it's lower than the target temperature
-
-        (*) Exactly one of ``kBT`` and ``T`` must be set.
     )");
 
     m.def("__createCopyPV", &plugin_factory::createCopyPVPlugin,
@@ -228,7 +314,7 @@ void exportPlugins(py::module& m)
     )");
 
     m.def("__createDumpObjectStats", &plugin_factory::createDumpObjStats,
-          "compute_task"_a, "state"_a, "name"_a, "ov"_a, "dump_every"_a, "path"_a, R"(
+          "compute_task"_a, "state"_a, "name"_a, "ov"_a, "dump_every"_a, "filename"_a, R"(
         This plugin will write the coordinates of the centers of mass of the objects of the specified Object Vector.
         Instantaneous quantities (COM velocity, angular velocity, force, torque) are also written.
         If the objects are rigid bodies, also will be written the quaternion describing the rotation.
@@ -245,10 +331,10 @@ void exportPlugins(py::module& m)
             This plugin is inactive if postprocess is disabled
 
         Args:
-            name: name of the plugin
-            ov: :any:`ObjectVector` that we'll work with
-            dump_every: write files every this many time-steps
-            path: the files will look like this: <path>/<ov_name>.csv
+            name: Name of the plugin.
+            ov: :any:`ObjectVector` that we'll work with.
+            dump_every: Write files every this many time-steps.
+            filename: The name of the resulting csv file.
     )");
 
     m.def("__createDumpParticles", &plugin_factory::createDumpParticlesPlugin,
@@ -280,6 +366,22 @@ void exportPlugins(py::module& m)
             path: Path and filename prefix for the dumps. For every dump two files will be created: <path>_NNNNN.xmf and <path>_NNNNN.h5
     )");
 
+    m.def("__createDumpParticlesWithPolylines", &plugin_factory::createDumpParticlesWithPolylinesPlugin,
+          "compute_task"_a, "state"_a, "name"_a, "cv"_a, "dump_every"_a,
+          "channel_names"_a, "path"_a, R"(
+        This plugin will dump positions, velocities and optional attached data of all the particles of the specified
+        ChainVector, as well as connectivity information representing polylines.
+        The data is dumped into hdf5 format.
+        An additional xdfm file is dumped to describe the data and make it readable by visualization tools.
+
+        Args:
+            name: name of the plugin.
+            cv: :any:`ChainVector` to be dumped.
+            dump_every: write files every this many time-steps.
+            channel_names: list of channel names to be dumped.
+            path: Path and filename prefix for the dumps. For every dump two files will be created: <path>_NNNNN.xmf and <path>_NNNNN.h5
+    )");
+
     m.def("__createDumpXYZ", &plugin_factory::createDumpXYZPlugin,
           "compute_task"_a, "state"_a, "name"_a, "pv"_a, "dump_every"_a, "path"_a, R"(
         This plugin will dump positions of all the particles of the specified Particle Vector in the XYZ format.
@@ -305,6 +407,37 @@ void exportPlugins(py::module& m)
             pv1: :class:`ParticleVector` source
             pv2: :class:`ParticleVector` destination
             plane: 4 coefficients for the plane equation ax + by + cz + d >= 0
+    )");
+
+    m.def("__createExpMovingAverage", &plugin_factory::createExpMovingAveragePlugin,
+          "compute_task"_a, "state"_a, "name"_a, "pv"_a, "alpha"_a, "src_channel_name"_a, "ema_channel_name"_a, R"(
+        Compute the exponential moving average (EMA) of the given channel of a :class:`ParticleVector` and stores it in the new channel "ema_channel_name".
+
+        Args:
+            name: name of the plugin
+            pv: :class:`ParticleVector` source
+            alpha: EMA coefficient. must be in [0, 1].
+            src_channel_name: The name of the source channel.
+            ema_channel_name: The name of the new EMA channel.
+    )");
+
+    m.def("__createExternalMagneticTorque", &plugin_factory::createExternalMagneticTorquePlugin,
+          "compute_task"_a, "state"_a, "name"_a, "rov"_a, "moment"_a, "magneticFunction"_a, R"(
+        This plugin gives a magnetic moment :math:`\mathbf{M}` to every rigid objects in a given :any:`RigidObjectVector`.
+        It also models a uniform magnetic field :math:`\mathbf{B}` (varying in time) and adds the induced torque to the objects according to:
+
+        .. math::
+
+            \mathbf{T} = \mathbf{M} \times \mathbf{B}
+
+        The magnetic field is passed as a function from python.
+        The function must take a real (time) as input and output a tuple of three reals (magnetic field).
+
+        Args:
+            name: name of the plugin
+            rov: :class:`RigidObjectVector` with which the magnetic field will interact
+            moment: magnetic moment per object
+            magneticFunction: a function that depends on time and returns a uniform (real3) magnetic field
     )");
 
     m.def("__createForceSaver", &plugin_factory::createForceSaverPlugin,
@@ -345,23 +478,17 @@ void exportPlugins(py::module& m)
             velocity: target velocity
     )");
 
-    m.def("__createMagneticOrientation", &plugin_factory::createMagneticOrientationPlugin,
-          "compute_task"_a, "state"_a, "name"_a, "rov"_a, "moment"_a, "magneticFunction"_a, R"(
-        This plugin gives a magnetic moment :math:`\mathbf{M}` to every rigid objects in a given :any:`RigidObjectVector`.
-        It also models a uniform magnetic field :math:`\mathbf{B}` (varying in time) and adds the induced torque to the objects according to:
-
-        .. math::
-
-            \mathbf{T} = \mathbf{M} \times \mathbf{B}
-
-        The magnetic field is passed as a function from python.
-        The function must take a real (time) as input and output a tuple of three reals (magnetic field).
+    m.def("__createMagneticDipoleInteractions", &plugin_factory::createMagneticDipoleInteractionsPlugin,
+          "compute_task"_a, "state"_a, "name"_a, "rov"_a, "moment"_a, "mu0"_a, "periodic"_a=true, R"(
+        This plugin computes the forces and torques resulting from pairwise dipole-dipole interactions between rigid objects.
+        All rigid objects are assumed to be the same with a constant magnetic moment in their frame of reference.
 
         Args:
             name: name of the plugin
             rov: :class:`RigidObjectVector` with which the magnetic field will interact
             moment: magnetic moment per object
-            magneticFunction: a function that depends on time and returns a uniform (real3) magnetic field
+            mu0: magnetic permeability of the medium
+            periodic: if True, compute the interactions from the closest periodic image of each object.
     )");
 
     m.def("__createMembraneExtraForce", &plugin_factory::createMembraneExtraForcePlugin,
@@ -509,8 +636,46 @@ void exportPlugins(py::module& m)
             every: Computes and dump the RDF every this amount of timesteps.
     )");
 
+    m.def("__createRmacf", &plugin_factory::createRmacfPlugin,
+          "compute_task"_a, "state"_a, "name"_a, "cv"_a, "start_time"_a, "end_time"_a, "dump_every"_a, "path"_a, R"(
+        This plugin computes the mean Rouse mode autocorrelation over time from a given :any:`ChainVector`.
+        The reference modes are that of the :any:`ChainVector` at the given start time.
+
+        Args:
+            name: Name of the plugin.
+            cv: Concerned :class:`ChainVector`.
+            start_time: Simulation time of the reference velocities.
+            end_time: End time until which to compute the RMACF.
+            dump_every: Report the RMACF every this many time-steps.
+            path: The folder name in which the file will be dumped.
+    )");
+
+    m.def("__createShearField", &plugin_factory::createShearFieldPlugin,
+          "compute_task"_a, "state"_a, "name"_a, "pv"_a, "shear"_a, "origin"_a, "sf_channel_name"_a, R"(
+        This plugin computes the shear velocity field at every particle's position and stores it in a channel vector.
+
+        Args:
+            name: Name of the plugin.
+            pv: Concerned :class:`ParticleVector`.
+            shear: Shear tensor.
+            origin: Point in space with zero velocity.
+            sf_channel_name: Name of the channel that will contain the shear field.
+    )");
+
+    m.def("__createSinusoidalField", &plugin_factory::createSinusoidalFieldPlugin,
+          "compute_task"_a, "state"_a, "name"_a, "pv"_a, "magnitude"_a, "wave_number"_a, "sf_channel_name"_a, R"(
+        This plugin computes a sinusoidal velocity field at every particle's position and stores it in a channel vector.
+
+        Args:
+            name: Name of the plugin.
+            pv: Concerned :class:`ParticleVector`.
+            magnitude: Maximum velocity along x.
+            wave_number: Number of periods along y.
+            sf_channel_name: Name of the channel that will contain the sinusoidal field.
+    )");
+
     m.def("__createStats", &plugin_factory::createStatsPlugin,
-          "compute_task"_a, "state"_a, "name"_a, "filename"_a="", "every"_a, R"(
+          "compute_task"_a, "state"_a, "name"_a, "every"_a, "pvs"_a=std::vector<ParticleVector*>(), "filename"_a="", R"(
         This plugin will report aggregate quantities of all the particles in the simulation:
         total number of particles in the simulation, average temperature and momentum, maximum velocity magnutide of a particle
         and also the mean real time per step in milliseconds.
@@ -520,8 +685,9 @@ void exportPlugins(py::module& m)
 
         Args:
             name: Name of the plugin.
-            filename: The statistics are saved in this csv file. The name should either end with `.csv` or have no extension, in which case `.csv` is added.
             every: Report to standard output every that many time-steps.
+            pvs: List of pvs to compute statistics from. If empty, will use all the pvs registered in the simulation.
+            filename: The statistics are saved in this csv file. The name should either end with `.csv` or have no extension, in which case `.csv` is added.
     )");
 
     m.def("__createStressTensor", &plugin_factory::createStressTensorPlugin,
@@ -653,8 +819,8 @@ void exportPlugins(py::module& m)
     )");
 
     m.def("__createWallForceCollector", &plugin_factory::createWallForceCollectorPlugin,
-          "compute_task"_a, "state"_a, "name"_a, "wall"_a, "pvFrozen"_a, "sample_every"_a, "dump_every"_a, "filename"_a, R"(
-        This plugin collects and average the total force exerted on a given wall.
+          "compute_task"_a, "state"_a, "name"_a, "wall"_a, "pvFrozen"_a, "sample_every"_a, "dump_every"_a, "filename"_a, "detailed_dump"_a=false, R"(
+        This plugin collects and averages the total force exerted on a given wall.
         The result has 2 components:
 
             * bounce back: force necessary to the momentum change
@@ -662,11 +828,12 @@ void exportPlugins(py::module& m)
 
         Args:
             name: name of the plugin
-            wall: :any:`Wall` that we ll work with
+            wall: The :any:`Wall` to collect forces from
             pvFrozen: corresponding frozen :any:`ParticleVector`
             sample_every: sample every this number of time steps
-            dump_every: dump every this amount of timesteps
-            filename: output filename
+            dump_every: dump every this number of time steps
+            filename: output filename (csv format)
+            detailed_dump: if True, will dump separately the bounce contribution and the rest. If False, only the sum is dumped.
     )");
 }
 

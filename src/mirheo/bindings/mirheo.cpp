@@ -1,5 +1,5 @@
 // Copyright 2020 ETH Zurich. All Rights Reserved.
-#include "bindings.h"
+#include "mirheo.h"
 #include "class_wrapper.h"
 
 #include <mirheo/core/bouncers/interface.h>
@@ -11,7 +11,6 @@
 #include <mirheo/core/plugins.h>
 #include <mirheo/core/pvs/object_vector.h>
 #include <mirheo/core/pvs/particle_vector.h>
-#include <mirheo/core/utils/config.h>
 #include <mirheo/core/utils/strprintf.h>
 #include <mirheo/core/walls/interface.h>
 
@@ -34,105 +33,97 @@ static CheckpointIdAdvanceMode getCheckpointMode(const std::string& mode)
     return CheckpointIdAdvanceMode::PingPong;
 }
 
-static CheckpointMechanism getCheckpointMechanism(const std::string& mechanism)
+void exportDomainInfo(py::module& m)
 {
-    if (mechanism == "Checkpoint")
-        return CheckpointMechanism::Checkpoint;
-    if (mechanism == "Snapshot")
-        return CheckpointMechanism::Snapshot;
-
-    die("Unknown checkpoint mechanism '%s'\n", mechanism.c_str());
-    return CheckpointMechanism::Checkpoint;
-}
-
-void exportConfigValue(py::module& m)
-{
-    py::class_<ConfigValue>(m, "ConfigValue", R"(
-        A JSON-like object representing an integer, floating point number,
-        string, array of ConfigValues or a dictionary mapping strings to
-        ConfigValues.
-
-        Currently only integers, floating point numbers and strings are supported.
-
-        Special conversions for a ``ConfigValue`` value ``v``:
-
-        - ``int(v)`` convert to an integer. Aborts if ``v`` is not an integer.
-        - ``float(v)`` converts to a float. Aborts if ``v`` is not a float nor an integer.
-        - ``str(v)`` converts to a string. If a stored value is a string already, returns as is.
-            Otherwise, a potentially approximate representation of the value is returned
-        - ``repr(v)`` converts to a JSON string.
+    py::class_<DomainInfo>(m, "DomainInfo", R"(
+        Convert between local domain coordinates (specific to each rank) and global domain coordinates.
     )")
-        .def(py::init<ConfigValue::Int>())
-        .def(py::init<ConfigValue::Float>())
-        .def(py::init<ConfigValue::String>())
-        .def("__int__", &ConfigValue::getInt)
-        .def("__float__", &ConfigValue::getFloat)
-        .def("__str__", &ConfigValue::toString)
-        .def("__repr__", &ConfigValue::toJSONString);
-    py::implicitly_convertible<ConfigValue::Int, ConfigValue>();
-    py::implicitly_convertible<ConfigValue::Float, ConfigValue>();
-    py::implicitly_convertible<ConfigValue::String, ConfigValue>();
-}
-
-void exportUnitConversion(py::module& m)
-{
-    py::class_<UnitConversion>(m, "UnitConversion", R"(
-        Factors for unit conversion between Mirheo and SI units.
-    )")
-        .def(py::init<>(), "Default constructor. Conversion factors not known.")
-        .def(py::init<real, real, real>(), "toMeters"_a, "toSeconds"_a, "toKilograms"_a, R"(
-            Construct from conversion factors from Mirheo units to SI units.
+        .def("local_to_global", &DomainInfo::local2global, "x"_a, R"(
+            Convert local coordinates to global coordinates.
 
             Args:
-                toMeters: value in meters of 1 Mirheo length unit
-                toSeconds: value in seconds of 1 Mirheo time (duration) unit
-                toKilograms: value in kilograms of 1 Mirheo mass unit
+                x: Position in local coordinates.
         )")
-        .def("__repr__", [](UnitConversion u) -> std::string
-            {
-                if (!u.isSet())
-                    return "UnitConversion()";
-                return strprintf("UnitConversion(%g, %g, %g)",
-                                 u.toMeters(1), u.toSeconds(1), u.toKilograms(1));
-            });
+        .def("global_to_local", &DomainInfo::global2local, "x"_a, R"(
+            Convert from global coordinates to local coordinates.
+
+            Args:
+                x: Position in global coordinates.
+        )")
+        .def("is_in_subdomain", &DomainInfo::inSubDomain<real3>, "x"_a, R"(
+            Returns True if the given position (in global coordinates) is inside the subdomain of the current rank,
+            False otherwise.
+
+            Args:
+                x: Position in global coordinates.
+        )")
+        .def_readonly("global_size", &DomainInfo::globalSize, R"(
+            Size of the whole simulation domain.
+        )")
+        .def_readonly("global_start", &DomainInfo::globalStart, R"(
+            Subdomain lower corner position of the current rank, in global coordinates.
+        )")
+        .def_readonly("local_size", &DomainInfo::localSize, R"(
+            Subdomain extents of the current rank.
+        )")
+        .def_property_readonly("local_to_global_shift", [](const DomainInfo& d) {return d.local2global(make_real3(0.0_r));}, R"(
+            shift to transform local coordinates to global coordinates.
+        )")
+        .def_property_readonly("global_to_local_shift", [](const DomainInfo& d) {return d.global2local(make_real3(0.0_r));}, R"(
+            shift to transform global coordinates to local coordinates.
+        )");
 }
 
 void exportMirheo(py::module& m)
 {
     py::handlers_class<MirState>(m, "MirState", R"(
         state of the simulation shared by all simulation objects.
-    )");
+    )")
+        .def_readonly("domain_info", &MirState::domain, R"(
+            The :any:`DomainInfo` of the current rank.
+        )", py::return_value_policy::reference_internal)
+        .def_readonly("current_time", &MirState::currentTime, R"(
+            Current simulation time.
+        )")
+        .def_readonly("current_step", &MirState::currentStep, R"(
+            Current simulation step.
+        )")
+        .def_property_readonly("current_dt", &MirState::getDt, R"(
+            Current simulation step size dt.
+            Note: this property is accessible only while Mirheo::run() is running.
+        )");
+
 
     py::handlers_class<Mirheo>(m, "Mirheo", R"(
         Main coordination class, should only be one instance at a time
     )")
         .def(py::init( [] (int3 nranks, real3 domain,
                            std::string log, int debuglvl,
-                           std::string checkpointMechanismStr, int checkpointEvery,
-                           std::string checkpointFolder, std::string checkpointModeStr,
-                           bool cudaMPI, bool noSplash, long commPtr, UnitConversion units)
+                           int checkpointEvery, std::string checkpointFolder, std::string checkpointModeStr,
+                           real maxObjHalfLength, bool cudaMPI, bool noSplash, long commPtr)
             {
                 LogInfo logInfo(log, debuglvl, noSplash);
                 CheckpointInfo checkpointInfo(
                         checkpointEvery, checkpointFolder,
-                        getCheckpointMode(checkpointModeStr),
-                        getCheckpointMechanism(checkpointMechanismStr));
+                        getCheckpointMode(checkpointModeStr));
 
-                if (commPtr == 0) {
-                    return std::make_unique<Mirheo> (      nranks, domain, logInfo,
-                                                           checkpointInfo, cudaMPI, units);
-                } else {
+                if (commPtr == 0)
+                {
+                    return std::make_unique<Mirheo> (nranks, domain, logInfo,
+                                                     checkpointInfo, maxObjHalfLength, cudaMPI);
+                }
+                else
+                {
                     // https://stackoverflow.com/questions/49259704/pybind11-possible-to-use-mpi4py
                     MPI_Comm comm = *(MPI_Comm *)commPtr;
                     return std::make_unique<Mirheo> (comm, nranks, domain, logInfo,
-                                                           checkpointInfo, cudaMPI, units);
+                                                     checkpointInfo, maxObjHalfLength, cudaMPI);
                 }
             } ),
              py::return_value_policy::take_ownership,
-             "nranks"_a, "domain"_a, "log_filename"_a="log", "debug_level"_a=3,
-             "checkpoint_mechanism"_a="Checkpoint", "checkpoint_every"_a=0,
-             "checkpoint_folder"_a="restart/", "checkpoint_mode"_a="PingPong",
-             "cuda_aware_mpi"_a=false, "no_splash"_a=false, "comm_ptr"_a=0, "units"_a=UnitConversion{}, R"(
+             "nranks"_a, "domain"_a, "log_filename"_a="log", "debug_level"_a=-1,
+             "checkpoint_every"_a=0, "checkpoint_folder"_a="restart/", "checkpoint_mode"_a="PingPong",
+             "max_obj_half_length"_a=0.0_r, "cuda_aware_mpi"_a=false, "no_splash"_a=false, "comm_ptr"_a=0, R"(
 Create the Mirheo coordinator.
 
 .. warning::
@@ -151,6 +142,9 @@ Create the Mirheo coordinator.
     Debug levels above 4 or 5 may significanlty increase the runtime, they are only recommended to debug errors.
     Flushing increases the runtime yet more, but it is required in order not to lose any messages in case of abnormal program abort.
 
+    The default debug level may be modified by setting the ``MIRHEO_DEBUG_LEVEL`` environment variable to the desired value.
+    This variable may be useful when Mirheo is linked as part of other codes, in which case the ``debug_level`` variable affects only parts of the execution.
+
 
 Args:
     nranks: number of MPI simulation tasks per axis: x,y,z. If postprocess is enabled, the same number of the postprocess tasks will be running
@@ -165,38 +159,10 @@ Args:
         If this parameter is set to 'stdout' or 'stderr' standard output or standard error streams will be used instead of the file, however,
         there is no guarantee that messages from different ranks are synchronized.
     debug_level: Debug level from 0 to 8, see above.
-    checkpoint_mechanism: set to "Checkpoint" to use checkpoint mechanism (setup is not stored), "Snapshot" to dump both data and setup.
     checkpoint_every: save state of the simulation components (particle vectors and handlers like integrators, plugins, etc.)
     checkpoint_folder: folder where the checkpoint files will reside (for Checkpoint mechanism), or folder prefix (for Snapshot mechanism)
     checkpoint_mode: set to "PingPong" to keep only the last 2 checkpoint states; set to "Incremental" to keep all checkpoint states.
-    cuda_aware_mpi: enable CUDA Aware MPI. The MPI library must support that feature, otherwise it may fail.
-    no_splash: don't display the splash screen when at the start-up.
-    comm_ptr: pointer to communicator. By default MPI_COMM_WORLD will be used
-    units: Mirheo to SI unit conversion factors. Automatically set if :any:`set_unit_registry` was used.
-        )")
-        .def(py::init( [] (int3 nranks, const std::string& snapshotPath, std::string log, int debuglvl,
-                           bool cudaMPI, bool noSplash, long commPtr)
-            {
-                LogInfo logInfo(log, debuglvl, noSplash);
-
-                if (commPtr == 0) {
-                    return std::make_unique<Mirheo> (      nranks, snapshotPath, logInfo, cudaMPI);
-                } else {
-                    // https://stackoverflow.com/questions/49259704/pybind11-possible-to-use-mpi4py
-                    MPI_Comm comm = *(MPI_Comm *)commPtr;
-                    return std::make_unique<Mirheo> (comm, nranks, snapshotPath, logInfo, cudaMPI);
-                }
-            } ),
-             py::return_value_policy::take_ownership,
-             "nranks"_a, "snapshot"_a, "log_filename"_a="log", "debug_level"_a=3,
-             "cuda_aware_mpi"_a=false, "no_splash"_a=false, "comm_ptr"_a=0, R"(
-Create the Mirheo coordinator from a snapshot.
-
-Args:
-    nranks: number of MPI simulation tasks per axis: x,y,z. If postprocess is enabled, the same number of the postprocess tasks will be running
-    snapshot: path to the snapshot folder.
-    log_filename: prefix of the log files that will be created.
-    debug_level: Debug level from 0 to 8, see above.
+    max_obj_half_length: Half of the maximum size of all objects. Needs to be set when objects are self interacting with pairwise interactions.
     cuda_aware_mpi: enable CUDA Aware MPI. The MPI library must support that feature, otherwise it may fail.
     no_splash: don't display the splash screen when at the start-up.
     comm_ptr: pointer to communicator. By default MPI_COMM_WORLD will be used
@@ -233,14 +199,14 @@ Args:
                     ov: :any:`ObjectVector` belonging to which the **checker** will check
         )")
 
-        .def("registerBouncer",  &Mirheo::registerBouncer,
+        .def("registerBouncer", &Mirheo::registerBouncer,
              "bouncer"_a, R"(
                Register Object Bouncer
 
                Args:
                    bouncer: the :any:`Bouncer` to register
         )")
-        .def("registerWall",     &Mirheo::registerWall,
+        .def("registerWall", &Mirheo::registerWall,
              "wall"_a, "check_every"_a=0, R"(
                Register a :any:`Wall`.
 
@@ -249,8 +215,8 @@ Args:
                    check_every: if positive, check every this many time steps if particles penetrate the walls
         )")
         .def("registerPlugins",
-             (void(Mirheo::*)(const std::shared_ptr<SimulationPlugin> &,
-                              const std::shared_ptr<PostprocessPlugin> &))&Mirheo::registerPlugins,
+             (void(Mirheo::*)(std::shared_ptr<SimulationPlugin>,
+                              std::shared_ptr<PostprocessPlugin>))&Mirheo::registerPlugins,
              "Register Plugins")
 
         .def("deregisterIntegrator", &Mirheo::deregisterIntegrator, "integrator"_a, "Deregister a integrator.")
@@ -283,7 +249,7 @@ Args:
                     ov: the :any:`ObjectVector` to be bounced on
                     pv: the :any:`ParticleVector` to be bounced
         )")
-        .def("setWall",        &Mirheo::setWallBounce,
+        .def("setWall", &Mirheo::setWallBounce,
              "wall"_a, "pv"_a, "maximum_part_travel"_a=0.25_r, R"(
                 Assign a :any:`Wall` bouncer to a given :any:`ParticleVector`.
                 The current implementation does not support :any:`ObjectVector`.
@@ -294,9 +260,9 @@ Args:
                     maximum_part_travel: maximum distance that one particle travels in one time step.
                         this should be as small as possible for performance reasons but large enough for correctness
          )")
-        .def("getState",       &Mirheo::getMirState,    "Return mirheo state")
+        .def("getState", &Mirheo::getMirState, "Return mirheo state", py::return_value_policy::reference_internal)
 
-        .def("dumpWalls2XDMF",    &Mirheo::dumpWalls2XDMF,
+        .def("dumpWalls2XDMF", &Mirheo::dumpWalls2XDMF,
             "walls"_a, "h"_a, "filename"_a="xdmf/wall", R"(
                 Write Signed Distance Function for the intersection of the provided walls (negative values are the 'inside' of the simulation)
 
@@ -409,7 +375,7 @@ Args:
                  current: if True, save the current non empty tasks; else, save all tasks that can exist in a simulation
 
              .. warning::
-                 if current is set to True, this must be called **after** :py:meth:`_mirheo.Mirheo.run`.
+                 if current is set to True, this must be called **after** :py:meth:`mmirheo.Mirheo.run`.
          )")
         .def("run", &Mirheo::run,
              "niters"_a, "dt"_a, R"(
@@ -422,18 +388,6 @@ Args:
         .def("log_compile_options", &Mirheo::logCompileOptions,
              R"(
              output compile times options in the log
-        )")
-        .def("saveSnapshot", &Mirheo::saveSnapshot,
-            "path"_a, R"(
-            Save a snapshot of the simulation setup and state to the given folder.
-
-            .. warning::
-                Experimental and only partially implemented!
-                The function will raise an exception if it encounters any plugin or other component which does not yet implement saving the snapshot.
-                If intended to be used as a restart or continue mechanism, test ``SaveFunction`` before executing :py:meth:`_mirheo.Mirheo.run`.
-
-            Args:
-                path: Target folder.
         )");
 }
 

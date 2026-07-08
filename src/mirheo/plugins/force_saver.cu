@@ -4,7 +4,6 @@
 #include <mirheo/core/simulation.h>
 #include <mirheo/core/pvs/particle_vector.h>
 #include <mirheo/core/utils/common.h>
-#include <mirheo/core/utils/config.h>
 #include <mirheo/core/utils/kernel_launch.h>
 #include <mirheo/core/pvs/views/pv.h>
 
@@ -33,10 +32,6 @@ ForceSaverPlugin::ForceSaverPlugin(const MirState *state, std::string name, std:
     pv_(nullptr)
 {}
 
-ForceSaverPlugin::ForceSaverPlugin(const MirState *state, Loader&, const ConfigObject& config) :
-    ForceSaverPlugin(state, config["name"], config["pvName"])
-{}
-
 void ForceSaverPlugin::setup(Simulation* simulation, const MPI_Comm& comm, const MPI_Comm& interComm)
 {
     SimulationPlugin::setup(simulation, comm, interComm);
@@ -63,18 +58,6 @@ void ForceSaverPlugin::beforeIntegration(cudaStream_t stream)
             force_saver_kernels::copyForces,
             getNblocks(view.size, nthreads), nthreads, 0, stream,
             view, savedForces->devPtr() );
-}
-
-void ForceSaverPlugin::saveSnapshotAndRegister(Saver& saver)
-{
-    saver.registerObject(this, _saveSnapshot(saver, "ForceSaverPlugin"));
-}
-
-ConfigObject ForceSaverPlugin::_saveSnapshot(Saver& saver, const std::string& typeName)
-{
-    ConfigObject config = SimulationPlugin::_saveSnapshot(saver, typeName);
-    config.emplace("pvName", saver(pvName_));
-    return config;
 }
 
 } // namespace mirheo

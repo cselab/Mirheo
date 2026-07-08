@@ -25,7 +25,6 @@ public:
         \param [in] seed The random seed.
     */
     explicit StepRandomGen(long seed);
-    ~StepRandomGen();
 
     /** Generates a random number from the current state.
         \param [in] state The currenst state that contains time step info.

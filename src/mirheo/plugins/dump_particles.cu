@@ -5,7 +5,6 @@
 
 #include <mirheo/core/pvs/rod_vector.h>
 #include <mirheo/core/simulation.h>
-#include <mirheo/core/utils/config.h>
 #include <mirheo/core/utils/cuda_common.h>
 #include <mirheo/core/utils/path.h>
 #include <mirheo/core/utils/kernel_launch.h>
@@ -56,12 +55,6 @@ ParticleSenderPlugin::ParticleSenderPlugin(const MirState *state, std::string na
 {
     channelData_.resize(channelNames_.size());
 }
-
-ParticleSenderPlugin::ParticleSenderPlugin(const MirState *state, Loader& loader, const ConfigObject& config) :
-    ParticleSenderPlugin(state, config["name"], config["pvName"], config["dumpEvery"],
-                         loader.load<std::vector<std::string>>(config["channelNames"]))
-{}
-
 ParticleSenderPlugin::~ParticleSenderPlugin() = default;
 
 void ParticleSenderPlugin::setup(Simulation *simulation, const MPI_Comm& comm, const MPI_Comm& interComm)
@@ -81,7 +74,7 @@ void ParticleSenderPlugin::handshake()
 
     auto pushChannelInfos = [&dataForms, &numberTypes, &typeDescriptorsStr](const DataManager::ChannelDescription& desc)
     {
-        mpark::visit([&dataForms, &numberTypes, &typeDescriptorsStr](auto pinnedBufferPtr)
+        std::visit([&dataForms, &numberTypes, &typeDescriptorsStr](auto pinnedBufferPtr)
         {
             using T = typename std::remove_pointer<decltype(pinnedBufferPtr)>::type::value_type;
             dataForms         .push_back(XDMF::getDataForm  <T>());
@@ -137,7 +130,7 @@ static inline void copyData(ObjectVector *ov, const std::string& channelName, Ho
     const int objSize  = lov->getObjectSize();
     const int nObjects = lov->getNumObjects();
 
-    mpark::visit([&](auto srcBufferPtr)
+    std::visit([&](auto srcBufferPtr)
     {
         using T = typename std::remove_pointer<decltype(srcBufferPtr)>::type::value_type;
 
@@ -167,7 +160,7 @@ static inline void copyData(RodVector *rv, const std::string& channelName, HostB
     const int nObjects = lrv->getNumObjects();
     const int numBiSegmentsPerObject = lrv->getNumSegmentsPerRod() - 1;
 
-    mpark::visit([&](auto srcBufferPtr)
+    std::visit([&](auto srcBufferPtr)
     {
         using T = typename std::remove_pointer<decltype(srcBufferPtr)>::type::value_type;
 
@@ -238,22 +231,8 @@ void ParticleSenderPlugin::serializeAndSend(__UNUSED cudaStream_t stream)
     debug2("Plugin %s is packing now data consisting of %zu particles",
            getCName(), positions_.size());
     _waitPrevSend();
-    SimpleSerializer::serialize(sendBuffer_, timeStamp, getState()->currentTime, positions_, velocities_, channelData_);
+    SimpleSerializer::serialize(sendBuffer_, timeStamp, positions_, velocities_, channelData_);
     _send(sendBuffer_);
-}
-
-void ParticleSenderPlugin::saveSnapshotAndRegister(Saver& saver)
-{
-    saver.registerObject(this, _saveSnapshot(saver, "ParticleSenderPlugin"));
-}
-
-ConfigObject ParticleSenderPlugin::_saveSnapshot(Saver& saver, const std::string& typeName)
-{
-    ConfigObject config = SimulationPlugin::_saveSnapshot(saver, typeName);
-    config.emplace("pvName",       saver(pvName_));
-    config.emplace("dumpEvery",    saver(dumpEvery_));
-    config.emplace("channelNames", saver(channelNames_));
-    return config;
 }
 
 
@@ -262,10 +241,6 @@ ParticleDumperPlugin::ParticleDumperPlugin(std::string name, std::string path) :
     PostprocessPlugin(name),
     path_(path),
     positions_(std::make_shared<std::vector<real3>>())
-{}
-
-ParticleDumperPlugin::ParticleDumperPlugin(Loader&, const ConfigObject& config) :
-    ParticleDumperPlugin(config["name"], config["path"])
 {}
 
 ParticleDumperPlugin::~ParticleDumperPlugin() = default;
@@ -293,8 +268,8 @@ void ParticleDumperPlugin::handshake()
     // Velocity and id are special channels which are always present
     std::string allNames = "'velocity', 'id'";
     channels_.clear();
-    channels_.push_back(initChannel("velocity", XDMF::Channel::DataForm::Vector, XDMF::getNumberType<real>(), DataTypeWrapper<real>()));
-    channels_.push_back(initChannel("id",       XDMF::Channel::DataForm::Scalar, XDMF::Channel::NumberType::Int64, DataTypeWrapper<int64_t>()));
+    channels_.push_back(initChannel("velocity", XDMF::Channel::Vector{}, XDMF::getNumberType<real>(), DataTypeWrapper<real>()));
+    channels_.push_back(initChannel("id",       XDMF::Channel::Scalar{}, XDMF::Channel::NumberType::Int64, DataTypeWrapper<int64_t>()));
 
     for (size_t i = 0; i < names.size(); ++i)
     {
@@ -333,10 +308,10 @@ static void unpackParticles(const std::vector<real4> &pos4, const std::vector<re
     }
 }
 
-void ParticleDumperPlugin::_recvAndUnpack(MirState::TimeType &time, MirState::StepType& timeStamp)
+void ParticleDumperPlugin::_recvAndUnpack(MirState::StepType& timeStamp)
 {
     int c = 0;
-    SimpleSerializer::deserialize(data_, timeStamp, time, pos4_, vel4_, channelData_);
+    SimpleSerializer::deserialize(data_, timeStamp, pos4_, vel4_, channelData_);
 
     unpackParticles(pos4_, vel4_, *positions_, velocities_, ids_);
 
@@ -351,26 +326,13 @@ void ParticleDumperPlugin::deserialize()
 {
     debug2("Plugin '%s' will dump right now", getCName());
 
-    MirState::TimeType time;
     MirState::StepType timeStamp;
-    _recvAndUnpack(time, timeStamp);
+    _recvAndUnpack(timeStamp);
 
     std::string fname = path_ + createStrZeroPadded(timeStamp, zeroPadding_);
 
     XDMF::VertexGrid grid(positions_, comm_);
-    XDMF::write(fname, &grid, channels_, time, comm_);
-}
-
-void ParticleDumperPlugin::saveSnapshotAndRegister(Saver& saver)
-{
-    saver.registerObject(this, _saveSnapshot(saver, "ParticleDumperPlugin"));
-}
-
-ConfigObject ParticleDumperPlugin::_saveSnapshot(Saver& saver, const std::string& typeName)
-{
-    ConfigObject config = PostprocessPlugin::_saveSnapshot(saver, typeName);
-    config.emplace("path", saver(path_));
-    return config;
+    XDMF::write(fname, &grid, channels_, comm_);
 }
 
 } // namespace mirheo

@@ -293,15 +293,15 @@ __device__ inline double atomicAdd(double *address, double val)
     } while (assumed != old);
     return __longlong_as_double(old);
 }
-#endif
+#endif //!defined(__CUDA_ARCH__) || __CUDA_ARCH__ >= 600
 
-__device__ inline float2 atomicAdd(float2* addr, float2 v)
-{
-    float2 res;
-    res.x = atomicAdd((float*)addr,   v.x);
-    res.y = atomicAdd((float*)addr+1, v.y);
-    return res;
-}
+// __device__ static inline float2 atomicAdd(float2* addr, float2 v)
+// {
+//     float2 res;
+//     res.x = atomicAdd((float*)addr,   v.x);
+//     res.y = atomicAdd((float*)addr+1, v.y);
+//     return res;
+// }
 
 __device__ inline float3 atomicAdd(float3* addr, float3 v)
 {
@@ -321,15 +321,15 @@ __device__ inline float3 atomicAdd(float4* addr, float3 v)
     return res;
 }
 
-__device__ inline float4 atomicAdd(float4* addr, float4 v)
-{
-    float4 res;
-    res.x = atomicAdd((float*)addr,   v.x);
-    res.y = atomicAdd((float*)addr+1, v.y);
-    res.z = atomicAdd((float*)addr+2, v.z);
-    res.w = atomicAdd((float*)addr+3, v.w);
-    return res;
-}
+// __device__ inline float4 atomicAdd(float4* addr, float4 v)
+// {
+//     float4 res;
+//     res.x = atomicAdd((float*)addr,   v.x);
+//     res.y = atomicAdd((float*)addr+1, v.y);
+//     res.z = atomicAdd((float*)addr+2, v.z);
+//     res.w = atomicAdd((float*)addr+3, v.w);
+//     return res;
+// }
 
 
 __device__ inline double2 atomicAdd(double2* addr, double2 v)
@@ -538,7 +538,7 @@ __device__ inline int atomicAggInc(int *ptr)
     return prev;
 }
 
-#endif
+#endif // __CUDA_ARCH__ < 700
 
 #else
 
@@ -554,7 +554,24 @@ inline double4 readNoCache(const double4 *addr)
     return *addr;
 }
 
-#endif
+template <class T>
+T atomicAdd(T *dst, T val)
+{
+    const auto old = *dst;
+    *dst = old + val;
+    return old;
+}
+
+inline real4 atomicAdd(real4 *dst, real3 val)
+{
+    real4 old = *dst;
+    dst->x += val.x;
+    dst->y += val.y;
+    dst->z += val.z;
+    return old;
+}
+
+#endif // __CUDACC__
 
 /** \brief Compute |x|**k
     \param x The value to take the power to

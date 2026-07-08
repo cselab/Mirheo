@@ -59,6 +59,7 @@ TEST (ROOTS, LinearSearch_sqrt)
 
 int main(int argc, char **argv)
 {
+    logger.init(MPI_COMM_NULL, "roots.log", 0);
     testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();
 }

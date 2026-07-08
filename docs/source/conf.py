@@ -1,6 +1,12 @@
-import sys, os, subprocess, glob
+import glob
+import os
 import sphinx.ext.autodoc
 import subprocess
+import sys
+
+sys.path.append(os.path.dirname(os.path.realpath(__file__)))
+
+import mmirheo
 
 # compile the xml source
 subprocess.run('(cd .. && doxygen)', shell=True)
@@ -28,7 +34,9 @@ master_doc = 'index'
 # General information about the project.
 project = 'Mirheo'
 copyright = 'ETH Zurich'
-author = 'Dmitry Alexeev, Lucas Amoudruz, Ivica Kicic'
+author_list = ['Dmitry Alexeev', 'Lucas Amoudruz', 'Ivica Kicic']
+author = ' ,'.join(author_list)
+release = mmirheo.mir_version
 
 exclude_patterns = []
 pygments_style = 'sphinx'
@@ -148,11 +156,60 @@ class AutoAutoSummary(Autosummary):
 ######################################################################################################################
 
 def setup(app):
-    app.add_stylesheet('css/theme.css')
-    
+    app.add_css_file('css/theme.css')
+
     sys.path.insert(0, os.path.abspath('./'))
     sys.path.insert(0, os.path.abspath('./source'))
     sphinx.ext.autodoc.Documenter.format_signature = format_signature
 
     app.add_directive('autoautosummary', AutoAutoSummary)
 
+
+# texinfo
+# see https://www.sphinx-doc.org/en/master/usage/configuration.html#confval-texinfo_documents
+texinfo_documents = [
+    (master_doc,
+     'mirheo',
+     u'Mirheo documentation',
+     '@*'.join(author_list),
+     'mirheo',
+     'Computational microfluidics.',
+     'Miscellaneous'),
+]
+
+
+# Latex customization
+# https://www.sphinx-doc.org/en/master/latex.html#the-latex-elements-configuration-setting
+
+latex_elements = {
+    'maketitle':
+    r'''
+\date{Jan 13, 2022}
+\sphinxmaketitle
+    ''',
+    'tableofcontents': '',
+    'preamble':
+    r'''
+\definecolor{TitleColor}{rgb}{0,0,0}
+\hypersetup{%
+    pdflang={en-US},
+    pdfsubject={%
+Mirheo documentation. High performance software for microfluidics, blood flow and microswimmer simulations.},
+    pdfkeywords={%
+Dissipative Particle Dynamics;%
+Red Blood Cell;%
+Microfluidics;%
+high performance computing;%
+Blood Flow},
+}
+''',
+    'printindex': '',
+}
+
+latex_documents = [
+    (master_doc,
+     'mirheo.tex',
+     u'Mirheo documentation',
+     ' \\and '.join(author_list),
+     'howto'),
+]

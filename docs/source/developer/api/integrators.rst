@@ -39,11 +39,23 @@ Derived classes
    :project: mirheo
    :members:
 
+.. doxygenclass:: mirheo::IntegratorShear
+   :project: mirheo
+   :members:
+
+.. doxygenclass:: mirheo::IntegratorShearPolChain
+   :project: mirheo
+   :members:
+
 .. doxygenclass:: mirheo::IntegratorTranslate
    :project: mirheo
    :members:
 
 .. doxygenclass:: mirheo::IntegratorVV
+   :project: mirheo
+   :members:
+
+.. doxygenclass:: mirheo::IntegratorVVPolChain
    :project: mirheo
    :members:
 

@@ -6,8 +6,7 @@
 #include <mirheo/core/domain.h>
 #include <mirheo/core/exchangers/api.h>
 #include <mirheo/core/integrators/factory.h>
-#include <mirheo/core/interactions/pairwise/factory.h>
-#include <mirheo/core/interactions/pairwise/base_pairwise.h>
+#include <mirheo/core/interactions/pairwise/dpd.h>
 #include <mirheo/core/logger.h>
 #include <mirheo/core/pvs/particle_vector.h>
 
@@ -206,7 +205,7 @@ void execute(real3 length, int niters, double& l2, double& linf)
     domainInfo.globalStart.y = -0.5f * length.y;
     domainInfo.globalStart.z = -0.5f * length.z;
 
-    MirState state(domainInfo, dt, UnitConversion{});
+    MirState state(domainInfo, dt);
 
     ParticleVector pv(&state, "pv", mass);
     PrimaryCellList cells(&pv, rc, length);
@@ -261,7 +260,7 @@ void execute(real3 length, int niters, double& l2, double& linf)
     SingleNodeExchangeEngine redistEngine(std::move(redistributor));
 
     const DPDParams dpdParams{adpd, gammadpd, kBT, powerdpd};
-    auto dpd = createInteractionPairwise(&state, "dpd", rc, dpdParams, StressNoneParams{});
+    auto dpd = std::make_unique<PairwiseDPDInteraction>(&state, "dpd", rc, dpdParams);
 
     auto integrator = integrator_factory::createVV(&state, "vv");
 

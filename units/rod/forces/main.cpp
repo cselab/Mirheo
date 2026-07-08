@@ -406,7 +406,7 @@ static void checkMomentum(const PinnedBuffer<real4>& pos, const HostBuffer<Force
 template <class CenterLine>
 static double testTwistForces(real kt, real tau0, CenterLine centerLine, int nSegments, Real h)
 {
-    MirState state(DomainInfo(), 0.f, UnitConversion{});
+    MirState state(DomainInfo(), 0.f);
 
     RodParameters params;
     params.kBending = {0.f, 0.f, 0.f};
@@ -465,7 +465,7 @@ static double testTwistForces(real kt, real tau0, CenterLine centerLine, int nSe
 template <class CenterLine>
 static double testBendingForces(real3 B, real2 kappa, CenterLine centerLine, int nSegments, Real h)
 {
-    MirState state(DomainInfo(), 0.f, UnitConversion{});
+    MirState state(DomainInfo(), 0.f);
 
     RodParameters params;
     params.kBending = B;
@@ -739,13 +739,7 @@ TEST (ROD, bendingForces_helix)
 
 int main(int argc, char **argv)
 {
-    MPI_Init(&argc, &argv);
-
-    logger.init(MPI_COMM_WORLD, "rod_forces.log", 0);
-
+    logger.init(MPI_COMM_NULL, "rod_foces.log", 0);
     testing::InitGoogleTest(&argc, argv);
-    auto ret = RUN_ALL_TESTS();
-
-    MPI_Finalize();
-    return ret;
+    return RUN_ALL_TESTS();
 }

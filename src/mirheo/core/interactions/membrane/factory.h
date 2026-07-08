@@ -5,10 +5,10 @@
 #include "force_kernels/parameters.h"
 
 #include <mirheo/core/mirheo_state.h>
-#include <mirheo/core/utils/variant.h>
 
 #include <memory>
 #include <string>
+#include <variant>
 
 namespace mirheo
 {
@@ -16,10 +16,10 @@ namespace mirheo
 class BaseMembraneInteraction;
 
 /// variant that contains all bending energy parameters
-using VarBendingParams = mpark::variant<KantorBendingParameters, JuelicherBendingParameters>;
+using VarBendingParams = std::variant<KantorBendingParameters, JuelicherBendingParameters>;
 
 /// variant that contains all shear energy parameters
-using VarShearParams   = mpark::variant<WLCParameters, LimParameters>;
+using VarShearParams   = std::variant<WLCParameters, LimParameters>;
 
 /** \brief Construct a MembraneInteraction from parameters
     \param [in] state The global state of the system
@@ -38,14 +38,5 @@ createInteractionMembrane(const MirState *state, const std::string& name,
                           CommonMembraneParameters commonParams,
                           VarBendingParams varBendingParams, VarShearParams varShearParams,
                           bool stressFree, real initLengthFraction, real growUntil, VarMembraneFilter varFilter);
-
-/** \brief Construct a MembraneInteraction from a snapshot
-    \param [in] state The global state of the system
-    \param [in] loader The \c Loader object. Provides load context and unserialization functions.
-    \param [in] config The parameters of the interaction.
-    \return A MembraneInteraction with template parameters corresponding to the parameters in the snapshot.
-*/
-std::shared_ptr<BaseMembraneInteraction>
-loadInteractionMembrane(const MirState *state, Loader& loader, const ConfigObject& config);
 
 } // namespace mirheo

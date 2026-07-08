@@ -73,15 +73,7 @@ public:
     /// get diagonal entries of the inertia tensor
     real3 getInertialTensor() const {return J_;}
 
-    /// Save channels, create ConfigObject and register it.
-    void saveSnapshotAndRegister(Saver& saver);
-
 protected:
-    /** \brief Implementation of the snapshot saving. Reusable by potential derived classes.
-        \param [in,out] saver The \c Saver object. Provides save context and serialization functions.
-        \param [in] typeName The name of the type being saved.
-      */
-    ConfigObject _saveSnapshot(Saver& saver, const std::string& typeName);
 
     void _checkpointObjectData(MPI_Comm comm, const std::string& path, int checkpointId) override;
     void _restartObjectData   (MPI_Comm comm, const std::string& path, const ExchMapSize& ms) override;

@@ -86,10 +86,6 @@ public:
         The particles that are counted must be previously attached to the walls by calling attach().
      */
     virtual void check(cudaStream_t stream) = 0;
-
-protected:
-    /// Base snapshot function for interactions, sets the category to "Wall".
-    ConfigObject _saveSnapshot(Saver& saver, const std::string &typeName);
 };
 
 /** \brief \c Wall with surface represented via a signed distance function (SDF).

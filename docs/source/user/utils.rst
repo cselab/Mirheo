@@ -13,22 +13,12 @@ Most of these functions are wrapped by the ``__main__.py`` file and can be calle
 
 Summary
 ========
-.. automodsumm:: _mirheo.Utils
+.. automodsumm:: mmirheo.Utils
 
 Details
 ========
-.. automodule:: _mirheo.Utils
+.. automodule:: mmirheo.Utils
    :members:
    :show-inheritance:
    :undoc-members:
    :special-members: __init__
-
-
-
-
-
-
-
-
-
-    

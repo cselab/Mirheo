@@ -1,7 +1,23 @@
 // Copyright 2020 ETH Zurich. All Rights Reserved.
+
+#include "bouncers.h"
+#include "cuda_array_interface.h"
+#include "data_manager.h"
+#include "initial_conditions.h"
+#include "integrators.h"
+#include "interactions.h"
+#include "local_particle_vectors.h"
+#include "mirheo.h"
+#include "object_belonging_checkers.h"
+#include "particle_vectors.h"
+#include "plugins.h"
+#include "utils.h"
+#include "vector_types.h"
+#include "walls.h"
+
 #include <mirheo/core/logger.h>
 #include <mirheo/core/version.h>
-#include "bindings.h"
+
 #include <mpi.h>
 
 PYBIND11_MODULE(libmirheo, m)
@@ -12,9 +28,9 @@ PYBIND11_MODULE(libmirheo, m)
     // https://github.com/pybind/pybind11/issues/1869
     m.attr("version") = Version::mir_version;  // This is not const!
 
+    exportCudaArrayInterface(m);
     exportVectorTypes(m);
-    exportConfigValue(m);
-    exportUnitConversion(m);
+    exportDomainInfo(m);
 
     exportMirheo(m);
 
@@ -22,6 +38,8 @@ PYBIND11_MODULE(libmirheo, m)
     exportInitialConditions(ic);
 
     auto pv = m.def_submodule("ParticleVectors");
+    exportDataManager(pv);
+    exportLocalParticleVectors(pv);
     exportParticleVectors(pv);
 
     auto interactions = m.def_submodule("Interactions");

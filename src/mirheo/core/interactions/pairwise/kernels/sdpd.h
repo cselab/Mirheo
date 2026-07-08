@@ -25,7 +25,7 @@ class LocalParticleVector;
     \tparam DensityJKernel The kernel used to compute the density
  */
 template <typename PressureEOS, typename DensityKernel>
-class PairwiseSDPDHandler : public ParticleFetcherWithVelocityDensityAndMass
+class PairwiseSDPDHandler : public ParticleFetcherWithDensityAndMass
 {
 public:
 #ifndef DOXYGEN_SHOULD_SKIP_THIS // warnings in breathe
@@ -35,7 +35,7 @@ public:
 
     /// Constructor
     PairwiseSDPDHandler(real rc, PressureEOS pressure, DensityKernel densityKernel, real viscosity) :
-        ParticleFetcherWithVelocityDensityAndMass(rc),
+        ParticleFetcherWithDensityAndMass(rc),
         invrc_(1.0 / rc),
         pressure_(pressure),
         densityKernel_(densityKernel),
@@ -122,8 +122,8 @@ public:
     /// Generic constructor
     PairwiseSDPD(real rc, const ParamsType& p, long seed = 42424242) :
         PairwiseSDPD{rc,
-                     mpark::get<typename PressureEOS::ParamsType>(p.varEOSParams),
-                     mpark::get<typename DensityKernel::ParamsType>(p.varDensityKernelParams),
+                     std::get<typename PressureEOS::ParamsType>(p.varEOSParams),
+                     std::get<typename DensityKernel::ParamsType>(p.varDensityKernelParams),
                      p.viscosity,
                      p.kBT,
                      seed}
@@ -152,12 +152,6 @@ public:
     bool readState(std::ifstream& fin) override
     {
         return text_IO::readFromStream(fin, stepGen_);
-    }
-
-    /// \return type name string
-    static std::string getTypeName()
-    {
-        return constructTypeName<PressureEOS, DensityKernel>("PairwiseSDPD");
     }
 
 private:

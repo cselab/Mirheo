@@ -26,8 +26,17 @@ public:
     {
         const mReal theta0 = p.theta / 180.0 * M_PI;
 
-        cost0kb_ = math::cos(theta0) * p.kb * lscale * lscale;
-        sint0kb_ = math::sin(theta0) * p.kb * lscale * lscale;
+        cost0kb_ = math::cos(theta0) * p.kb;
+        sint0kb_ = math::sin(theta0) * p.kb;
+
+        applyLengthScalingFactor(lscale);
+    }
+
+    /// Scale length-dependent parameters.
+    __HD__ void applyLengthScalingFactor(mReal lscale)
+    {
+        cost0kb_ *= lscale * lscale;
+        sint0kb_ *= lscale * lscale;
     }
 
     /// Precompute internal values that are common to all vertices in the cell.
@@ -76,8 +85,5 @@ private:
     mReal cost0kb_; ///< kb * cos(theta_0)
     mReal sint0kb_; ///< kb * sin(theta_0)
 };
-
-/// create name for that type
-MIRHEO_TYPE_NAME_AUTO(DihedralKantor);
 
 } // namespace mirheo

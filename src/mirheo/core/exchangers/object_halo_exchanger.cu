@@ -197,7 +197,7 @@ void ObjectHaloExchanger::prepareSizes(size_t id, cudaStream_t stream)
     {
         const int nthreads = 256;
 
-        mpark::visit([&](auto packerHandler)
+        std::visit([&](auto packerHandler)
         {
             SAFE_KERNEL_LAUNCH(
                 object_halo_exchange_kernels::getObjectHaloAndMap<PackMode::Query>,
@@ -231,7 +231,7 @@ void ObjectHaloExchanger::prepareData(size_t id, cudaStream_t stream)
         helper->resizeSendBuf();
         helper->send.sizes.clearDevice(stream);
 
-        mpark::visit([&](const auto& packerHandler)
+        std::visit([&](const auto& packerHandler)
         {
             SAFE_KERNEL_LAUNCH(
                 object_halo_exchange_kernels::getObjectHaloAndMap<PackMode::Pack>,
@@ -259,7 +259,7 @@ void ObjectHaloExchanger::combineAndUploadData(size_t id, cudaStream_t stream)
     const int nblocks = totalRecvd;
     const size_t shMemSize = offsets.size() * sizeof(offsets[0]);
 
-    mpark::visit([&](const auto& unpackerHandler)
+    std::visit([&](const auto& unpackerHandler)
     {
         SAFE_KERNEL_LAUNCH(
             object_halo_exchange_kernels::unpackObjects,
