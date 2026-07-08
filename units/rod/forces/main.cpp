@@ -430,8 +430,8 @@ static double testTwistForces(real kt, real tau0, CenterLine centerLine, int nSe
     twistForces(h, kt, tau0, refPositions, refForces);
 
     rod.local()->forces().clear(defaultStream);
-    interactions->setPrerequisites(&rod, &rod, &rod, nullptr, nullptr, nullptr);
-    interactions->local(&rod, &rod, &rod, nullptr, nullptr, nullptr, defaultStream);
+    interactions->setPrerequisites(&rod, &rod, nullptr, nullptr);
+    interactions->local(&rod, &rod, nullptr, nullptr, defaultStream);
 
     HostBuffer<Force> forces;
     forces.copy(rod.local()->forces(), defaultStream);
@@ -490,8 +490,8 @@ static double testBendingForces(real3 B, real2 kappa, CenterLine centerLine, int
     bendingForces(h, B_, kappa, refPositions, refForces);
 
     rod.local()->forces().clear(defaultStream);
-    interactions->setPrerequisites(&rod, &rod, &rod, nullptr, nullptr, nullptr);
-    interactions->local(&rod, &rod, &rod, nullptr, nullptr, nullptr, defaultStream);
+    interactions->setPrerequisites(&rod, &rod, nullptr, nullptr);
+    interactions->local(&rod, &rod, nullptr, nullptr, defaultStream);
 
     HostBuffer<Force> forces;
     forces.copy(rod.local()->forces(), defaultStream);
@@ -550,8 +550,8 @@ static double testSmoothingForces(real kSmoothing, CenterLine centerLine, int nS
     smoothingForces(h, kSmoothing, refPositions, refForces);
 
     rod.local()->forces().clear(defaultStream);
-    interactions->setPrerequisites(&rod, &rod, &rod, nullptr, nullptr, nullptr);
-    interactions->local(&rod, &rod, &rod, nullptr, nullptr, nullptr, defaultStream);
+    interactions->setPrerequisites(&rod, &rod, nullptr, nullptr);
+    interactions->local(&rod, &rod, nullptr, nullptr, defaultStream);
 
     HostBuffer<Force> forces;
     forces.copy(rod.local()->forces(), defaultStream);

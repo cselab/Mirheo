@@ -15,6 +15,12 @@ namespace mirheo
 class ChainInteraction : public Interaction
 {
 public:
+    // two-body interaction: expose the base overloads so that the three-body
+    // variants (with pv3/cl3) remain visible through derived-class pointers
+    using Interaction::setPrerequisites;
+    using Interaction::local;
+    using Interaction::halo;
+
     /** \brief Construct a \c ChainInteraction
         \param [in] state The global state of the system
         \param [in] name Name of the interaction

@@ -234,7 +234,7 @@ createPairwiseInteraction(const MirState *state, std::string name, real rc, cons
 }
 
 std::shared_ptr<BaseTriplewiseInteraction>
-interaction_factory::createTriplewiseInteraction(const MirState *state, std::string name, real rc, const std::string& type, const MapParams& parameters)
+createTriplewiseInteraction(const MirState *state, std::string name, real rc, const std::string& type, const MapParams& parameters)
 {
     ParametersWrap desc {parameters};
     VarTriplewiseParams varParams;

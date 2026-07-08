@@ -391,9 +391,9 @@ void CellList::_accumulateExtraDataAtomic(const std::string& channelName, cudaSt
     const auto& pvDesc   = pvManager  .getChannelDescOrDie(channelName);
     const auto& contDesc = contManager.getChannelDescOrDie(channelName);
 
-    mpark::visit([&](auto srcPinnedBuff)
+    std::visit([&](auto srcPinnedBuff)
     {
-        auto dstPinnedBuff = mpark::get<decltype(srcPinnedBuff)>(pvDesc.varDataPtr);
+        auto dstPinnedBuff = std::get<decltype(srcPinnedBuff)>(pvDesc.varDataPtr);
         accumulateIfHasAtomicAddOperator(srcPinnedBuff, dstPinnedBuff, n, this->cellInfo(), stream);
     }, contDesc.varDataPtr);
 }

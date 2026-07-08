@@ -161,9 +161,9 @@ static void execute(MPI_Comm comm, real3 length)
         dpds1.local()->forces().clear(defaultStream);
         dpds2.local()->forces().clear(defaultStream);
 
-        inter->local(&dpds1, &dpds1, nullptr, cells1.get(), cells1.get(), nullptr, defaultStream);
-        inter->local(&dpds2, &dpds2, nullptr, cells2.get(), cells2.get(), nullptr, defaultStream);
-        inter->local(&dpds2, &dpds1, nullptr, cells2.get(), cells1.get(), nullptr, defaultStream);
+        inter->local(&dpds1, &dpds1, cells1.get(), cells1.get(), defaultStream);
+        inter->local(&dpds2, &dpds2, cells2.get(), cells2.get(), defaultStream);
+        inter->local(&dpds2, &dpds1, cells2.get(), cells1.get(), defaultStream);
 
         cudaDeviceSynchronize();
     }

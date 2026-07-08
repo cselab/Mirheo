@@ -212,11 +212,6 @@ void exportParticleVectors(py::module& m)
         .def("setForces",      &ParticleVector::setForces_vector, "forces"_a, R"(
             Args:
                 forces: A list of :math:`N \times 3` reals: 3 components of force for every of the N particles
-        )")
-        .def("updateChannel", &ParticleVector::updateChannel, "channelName"_a, "values"_a, R"(
-            Args:
-                channelName: Name of the partivleVector Channel which will be overwritten by the new values
-                values: A list of :math:`N \times 3` reals: 3 components of coordinate for every of the N particles
         )");
 
     pypv.attr("MARK_VALUE") = (real)Real3_int::mark_val;

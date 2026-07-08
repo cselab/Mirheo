@@ -280,13 +280,13 @@ static Real checkGPUBendingEnergy(const MPI_Comm& comm, CenterLineFunc centerLin
     params.ksCenter = 0._r;
     params.ksFrame  = 0._r;
     auto gpuInt = createInteractionRod(&state, "twist_forces", params, StatesParametersNone{}, true);
-    gpuInt->setPrerequisites(&rv, &rv, &rv, nullptr, nullptr, nullptr);
+    gpuInt->setPrerequisites(&rv, &rv, nullptr, nullptr);
     ic.exec(comm, &rv, defaultStream);
 
     auto& pos = rv.local()->positions();
 
     rv.local()->forces().clear(defaultStream);
-    gpuInt->local(&rv, &rv, &rv, nullptr, nullptr, nullptr, defaultStream);
+    gpuInt->local(&rv, &rv, nullptr, nullptr, defaultStream);
 
     auto& gpuEnergies = *rv.local()->dataPerBisegment.getData<real>(channel_names::energies);
     gpuEnergies.downloadFromDevice(defaultStream);
@@ -412,13 +412,13 @@ static Real checkGPUTwistEnergy(const MPI_Comm& comm, CenterLineFunc centerLine,
     params.ksCenter = 0._r;
     params.ksFrame  = 0._r;
     auto gpuInt = createInteractionRod(&state, "twist_forces", params, StatesParametersNone{}, true);
-    gpuInt->setPrerequisites(&rv, &rv, &rv, nullptr, nullptr, nullptr);
+    gpuInt->setPrerequisites(&rv, &rv, nullptr, nullptr);
     ic.exec(comm, &rv, defaultStream);
 
     auto& pos = rv.local()->positions();
 
     rv.local()->forces().clear(defaultStream);
-    gpuInt->local(&rv, &rv, &rv, nullptr, nullptr, nullptr, defaultStream);
+    gpuInt->local(&rv, &rv, nullptr, nullptr, defaultStream);
 
     auto& gpuEnergies = *rv.local()->dataPerBisegment.getData<real>(channel_names::energies);
     gpuEnergies.downloadFromDevice(defaultStream);

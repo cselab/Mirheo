@@ -108,22 +108,16 @@ ObjectBindingInteraction::ObjectBindingInteraction(const MirState *state, std::s
 
 ObjectBindingInteraction::~ObjectBindingInteraction() = default;
 
-void ObjectBindingInteraction::local(ParticleVector *pv1, ParticleVector *pv2, ParticleVector *pv3,
-                                     __UNUSED CellList *cl1, __UNUSED CellList *cl2, __UNUSED CellList *cl3, cudaStream_t stream)
+void ObjectBindingInteraction::local(ParticleVector *pv1, ParticleVector *pv2,
+                                     __UNUSED CellList *cl1, __UNUSED CellList *cl2, cudaStream_t stream)
 {
-    if(pv3 != nullptr){
-        die("ObjectBindingInteraction::local not implemented for 3body");
-    }
     _buildInteractionMap(pv1, pv2, pv1->local(), pv2->local(), stream);
     _computeForces(pv1, pv2, pv1->local(), pv2->local(), stream);
 }
 
-void ObjectBindingInteraction::halo(ParticleVector *pv1, ParticleVector *pv2, ParticleVector *pv3,
-                                    __UNUSED CellList *cl1, __UNUSED CellList *cl2, __UNUSED CellList *cl3, cudaStream_t stream)
+void ObjectBindingInteraction::halo(ParticleVector *pv1, ParticleVector *pv2,
+                                    __UNUSED CellList *cl1, __UNUSED CellList *cl2, cudaStream_t stream)
 {
-    if(pv3 != nullptr){
-        die("ObjectBindingInteraction::halo not implemented for 3body");
-    }
     _buildInteractionMap(pv1, pv2, pv1->local(), pv2->halo(), stream);
     _computeForces(pv1, pv2, pv1->local(), pv2->halo(), stream);
 

@@ -6,6 +6,8 @@
 
 #include <mirheo/core/logger.h>
 
+#include <array>
+
 namespace mirheo {
 namespace XDMF {
 

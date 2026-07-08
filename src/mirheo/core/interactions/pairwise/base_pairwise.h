@@ -12,6 +12,12 @@ namespace mirheo
 class BasePairwiseInteraction : public Interaction
 {
 public:
+    // two-body interaction: expose the base overloads so that the three-body
+    // variants (with pv3/cl3) remain visible through derived-class pointers
+    using Interaction::setPrerequisites;
+    using Interaction::local;
+    using Interaction::halo;
+
 
     /** \brief Construct a base pairwise interaction from parameters.
         \param [in] state The global state of the system.

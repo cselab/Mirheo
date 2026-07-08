@@ -14,6 +14,12 @@ namespace mirheo
 class BaseRodInteraction : public Interaction
 {
 public:
+    // two-body interaction: expose the base overloads so that the three-body
+    // variants (with pv3/cl3) remain visible through derived-class pointers
+    using Interaction::setPrerequisites;
+    using Interaction::local;
+    using Interaction::halo;
+
     /** \brief Construct a \c BaseRodInteraction
         \param [in] state The global state of the system
         \param [in] name Name of the interaction
@@ -21,8 +27,7 @@ public:
     BaseRodInteraction(const MirState *state, const std::string& name);
     ~BaseRodInteraction();
 
-    void halo(ParticleVector *pv1, ParticleVector *pv2, ParticleVector *pv3,
-              CellList *cl1, CellList *cl2, CellList *cl3, cudaStream_t stream) final;
+    void halo(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2, cudaStream_t stream) final;
 
     bool isSelfObjectInteraction() const final;
 };

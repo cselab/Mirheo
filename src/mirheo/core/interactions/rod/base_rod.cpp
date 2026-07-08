@@ -15,10 +15,8 @@ BaseRodInteraction::~BaseRodInteraction() = default;
 
 void BaseRodInteraction::halo(ParticleVector *pv1,
                               __UNUSED ParticleVector *pv2,
-                              __UNUSED ParticleVector *pv3,
                               __UNUSED CellList *cl1,
                               __UNUSED CellList *cl2,
-                              __UNUSED CellList *cl3,
                               __UNUSED cudaStream_t stream)
 {
     debug("Not computing internal rod forces between local and halo rods of '%s'", pv1->getCName());

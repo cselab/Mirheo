@@ -17,6 +17,12 @@ class MembraneVector;
 class BaseMembraneInteraction : public Interaction
 {
 public:
+    // two-body interaction: expose the base overloads so that the three-body
+    // variants (with pv3/cl3) remain visible through derived-class pointers
+    using Interaction::setPrerequisites;
+    using Interaction::local;
+    using Interaction::halo;
+
     /** \brief Construct a BaseMembraneInteraction object
         \param [in] state The global state of the system
         \param [in] name The name of the interaction
@@ -28,18 +34,14 @@ public:
     /** \brief Set the required channels to the concerned ParticleVector that will participate in the interactions.
         \param [in] pv1 The conserned data that will participate in the interactions.
         \param [in] pv2 The conserned data that will participate in the interactions.
-        \param [in] pv3 The conserned data that will participate in the interactions.
         \param cl1 Unused
         \param cl2 Unused
-        \param cl3 Unused
 
         This method will fail if pv1 is not a MembraneVector or if pv1 is not the same as pv2.
     */
-    void setPrerequisites(ParticleVector *pv1, ParticleVector *pv2, ParticleVector *pv3,
-                          CellList *cl1, CellList *cl2, CellList *cl3) override;
+    void setPrerequisites(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2) override;
 
-    void halo(ParticleVector *pv1, ParticleVector *pv2, ParticleVector *pv3,
-              CellList *cl1, CellList *cl2, CellList *cl3, cudaStream_t stream) final;
+    void halo(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2, cudaStream_t stream) final;
 
     bool isSelfObjectInteraction() const override;
 

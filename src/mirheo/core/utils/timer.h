@@ -2,9 +2,22 @@
 #pragma once
 
 #include <chrono>
+#include <ratio>
+#include <type_traits>
 
 namespace mirheo
 {
+
+namespace details
+{
+/// trait to check that a type is a std::ratio
+template <typename T>
+struct is_ratio : std::false_type {};
+#ifndef DOXYGEN_SHOULD_SKIP_THIS
+template <intmax_t N, intmax_t D>
+struct is_ratio<std::ratio<N, D>> : std::true_type {};
+#endif
+} // namespace details
 
 /** \brief Measure wall time: profiling tool.
     \tparam Ratio a type of std::ratio, used to set the units of time durations (e.g. s, ms, us)
@@ -18,7 +31,7 @@ public:
         start_ {_none()},
         end_   {_none()}
     {
-        static_assert(std::chrono::__is_ratio<Ratio>::value, "timer must be specialized with ratio");
+        static_assert(details::is_ratio<Ratio>::value, "timer must be specialized with ratio");
     }
 
     /// Start the wall clock

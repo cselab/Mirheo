@@ -281,12 +281,12 @@ void execute(real3 length, int niters, double& l2, double& linf)
 
         haloEngine.init(defStream);
 
-        dpd->setPrerequisites(&pv, &pv, &pv, &cells, &cells, &cells);
-        dpd->local(&pv, &pv, &pv, &cells, &cells, &cells, defStream);
+        dpd->setPrerequisites(&pv, &pv, &cells, &cells);
+        dpd->local(&pv, &pv, &cells, &cells, defStream);
 
         haloEngine.finalize(defStream);
 
-        dpd->halo(&pv, &pv, &pv, &cells, &cells, &cells, defStream);
+        dpd->halo(&pv, &pv, &cells, &cells, defStream);
 
         integrator->setPrerequisites(&pv);
         integrator->execute(&pv, defStream);

@@ -75,10 +75,8 @@ public:
 
     void setPrerequisites(ParticleVector *pv1,
                           __UNUSED ParticleVector *pv2,
-                          __UNUSED ParticleVector *pv3,
                           __UNUSED CellList *cl1,
-                          __UNUSED CellList *cl2,
-                          __UNUSED CellList *cl3) override
+                          __UNUSED CellList *cl2) override
     {
         if (auto rv = dynamic_cast<RodVector*>(pv1))
         {
@@ -100,10 +98,8 @@ public:
 
     void local(ParticleVector *pv1,
                __UNUSED ParticleVector *pv2,
-               __UNUSED ParticleVector *pv3,
                __UNUSED CellList *cl1,
                __UNUSED CellList *cl2,
-               __UNUSED CellList *cl3,
                cudaStream_t stream) override
     {
         auto rv = dynamic_cast<RodVector*>(pv1);
