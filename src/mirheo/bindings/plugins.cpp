@@ -46,6 +46,17 @@ void exportPlugins(py::module& m)
             force: extra force
     )");
 
+    m.def("__createAddPerParticleForce", &plugin_factory::createAddPerParticleForcePlugin,
+          "compute_task"_a, "state"_a, "name"_a, "pv"_a, "channel_name"_a, R"(
+        This plugin will add a per-particle force, read from the given channel of the PV, to each particle every time-step.
+        The channel must contain one real3 force per particle (e.g. loaded from a restart file).
+
+        Args:
+            name: name of the plugin
+            pv: :any:`ParticleVector` that we'll work with
+            channel_name: channel name of the extra force
+    )");
+
     m.def("__createAddForceField",
           py::overload_cast<bool,const MirState*,std::string,ParticleVector*,std::function<real3(real3)>,real3>
           (&plugin_factory::createAddForceFieldPlugin),

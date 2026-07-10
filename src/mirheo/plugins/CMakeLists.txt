@@ -11,6 +11,7 @@ set(sources_cpp
 set(sources_cu
   add_force.cu
   add_force_field.cu
+  add_perparticleforce.cu
   add_potential_force.cu
   add_reverse_poiseuille_force.cu
   add_sinusoidal_force.cu

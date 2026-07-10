@@ -184,6 +184,27 @@ void ParticleVector::setForces_vector(const std::vector<real3>& forces)
     local()->forces().uploadToDevice(defaultStream);
 }
 
+void ParticleVector::additiveUpdateChannel(const std::string& channelName, real value)
+{
+    PinnedBuffer<real3> *container = local()->dataPerParticle.getData<real3>(channelName);
+
+    container->downloadFromDevice(defaultStream);
+
+    for (auto& v : *container)
+    {
+        if      (v.x > 0.0_r) v.x += value;
+        else if (v.x < 0.0_r) v.x -= value;
+
+        if      (v.y > 0.0_r) v.y += value;
+        else if (v.y < 0.0_r) v.y -= value;
+
+        if      (v.z > 0.0_r) v.z += value;
+        else if (v.z < 0.0_r) v.z -= value;
+    }
+
+    container->uploadToDevice(defaultStream);
+}
+
 void ParticleVector::_snapshotParticleData(MPI_Comm comm, const std::string& filename)
 {
     CUDA_Check( cudaDeviceSynchronize() );

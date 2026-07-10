@@ -3,6 +3,7 @@
 
 #include "add_force.h"
 #include "add_force_field.h"
+#include "add_perparticleforce.h"
 #include "add_potential_force.h"
 #include "add_reverse_poiseuille_force.h"
 #include "add_sinusoidal_force.h"
@@ -74,6 +75,12 @@ PairPlugin createAddFourRollMillForcePlugin(bool computeTask, const MirState *st
 PairPlugin createAddForcePlugin(bool computeTask, const MirState *state, std::string name, ParticleVector *pv, real3 force)
 {
     auto simPl = computeTask ? std::make_shared<AddForcePlugin> (state, name, pv->getName(), force) : nullptr;
+    return { simPl, nullptr };
+}
+
+PairPlugin createAddPerParticleForcePlugin(bool computeTask, const MirState *state, std::string name, ParticleVector *pv, std::string channel_name)
+{
+    auto simPl = computeTask ? std::make_shared<AddPerParticleForcePlugin> (state, name, pv->getName(), channel_name) : nullptr;
     return { simPl, nullptr };
 }
 
