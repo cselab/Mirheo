@@ -19,6 +19,7 @@ MorseParams              readMorseParams              (ParametersWrap& desc);
 MDPDParams               readMDPDParams               (ParametersWrap& desc);
 DensityParams            readDensityParams            (ParametersWrap& desc);
 SDPDParams               readSDPDParams               (ParametersWrap& desc);
+SW2Params                readSW2Params                (ParametersWrap& desc);
 
 std::optional<real>      readStressPeriod             (ParametersWrap& desc);
 

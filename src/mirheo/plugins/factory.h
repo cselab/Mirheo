@@ -26,6 +26,8 @@ PairPlugin createAddFourRollMillForcePlugin(bool computeTask, const MirState *st
 
 PairPlugin createAddForcePlugin(bool computeTask, const MirState *state, std::string name, ParticleVector *pv, real3 force);
 
+PairPlugin createAddPerParticleForcePlugin(bool computeTask, const MirState *state, std::string name, ParticleVector *pv, std::string channel_name);
+
 PairPlugin createAddForceFieldPlugin(bool computeTask, const MirState *state, std::string name,
                                      ParticleVector *pv, std::function<real3(real3)> forceField, real3 gridSpacing);
 
@@ -53,6 +55,8 @@ PairPlugin createAnchorParticlesPlugin(bool computeTask, const MirState *state, 
 
 PairPlugin createBerendsenThermostatPlugin(bool computeTask, const MirState *state, std::string name,
                                            const std::vector<ParticleVector *> &pv, real tau, real kBT, bool increaseIfLower);
+
+PairPlugin createCopyPVPlugin(bool computeTask, const MirState *state, std::string name, ParticleVector *pvTarget, ParticleVector *pvSource);
 
 PairPlugin createDensityControlPlugin(bool computeTask, const MirState *state, std::string name,
                                       std::string fname, std::vector<ParticleVector*> pvs,
@@ -166,6 +170,8 @@ PairPlugin createSinusoidalFieldPlugin(bool computeTask, const MirState *state, 
                                        real magnitude, int waveNumber, std::string sfChannelName);
 
 PairPlugin createStatsPlugin(bool computeTask, const MirState *state, std::string name, int every, const std::vector<ParticleVector*>& pvs, std::string filename);
+
+PairPlugin createStressTensorPlugin(bool computeTask, const MirState *state, std::string name, ParticleVector *pv, int dumpEvery, std::string mask, std::string path);
 
 PairPlugin createTemperaturizePlugin(bool computeTask, const MirState *state, std::string name, ParticleVector* pv, real kBT, bool keepVelocity);
 

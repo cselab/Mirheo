@@ -368,6 +368,13 @@ __device__ inline double4 atomicAdd(double4* addr, double4 v)
     return res;
 }
 
+__device__ inline mirheo::Force atomicAdd(mirheo::Force *ptr, mirheo::Force v) {
+    mirheo::Force res;
+    res.f = atomicAdd(&ptr->f, v.f);
+    res.i = atomicAdd(&ptr->i, v.i);
+    return res;
+}
+
 namespace mirheo
 {
 

@@ -3,6 +3,7 @@
 
 #include "add_force.h"
 #include "add_force_field.h"
+#include "add_perparticleforce.h"
 #include "add_potential_force.h"
 #include "add_reverse_poiseuille_force.h"
 #include "add_sinusoidal_force.h"
@@ -12,6 +13,7 @@
 #include "average_relative_flow.h"
 #include "berendsen_thermostat.h"
 #include "channel_dumper.h"
+#include "copy_pv.h"
 #include "density_control.h"
 #include "displacement.h"
 #include "dump_mesh.h"
@@ -42,6 +44,7 @@
 #include "shear_field.h"
 #include "sinusoidal_field.h"
 #include "stats.h"
+#include "stress_tensor.h"
 #include "temperaturize.h"
 #include "vacf.h"
 #include "velocity_control.h"
@@ -72,6 +75,12 @@ PairPlugin createAddFourRollMillForcePlugin(bool computeTask, const MirState *st
 PairPlugin createAddForcePlugin(bool computeTask, const MirState *state, std::string name, ParticleVector *pv, real3 force)
 {
     auto simPl = computeTask ? std::make_shared<AddForcePlugin> (state, name, pv->getName(), force) : nullptr;
+    return { simPl, nullptr };
+}
+
+PairPlugin createAddPerParticleForcePlugin(bool computeTask, const MirState *state, std::string name, ParticleVector *pv, std::string channel_name)
+{
+    auto simPl = computeTask ? std::make_shared<AddPerParticleForcePlugin> (state, name, pv->getName(), channel_name) : nullptr;
     return { simPl, nullptr };
 }
 
@@ -164,6 +173,12 @@ PairPlugin createBerendsenThermostatPlugin(
                 state, name, extractPVNames(pvs), kBT, tau, increaseIfLower) : nullptr,
         nullptr
     };
+}
+
+PairPlugin createCopyPVPlugin(bool computeTask, const MirState *state, std::string name, ParticleVector *pvTarget, ParticleVector *pvSource)
+{
+    auto simPl = computeTask ? std::make_shared<CopyPVPlugin> (state, name, pvTarget->getName(), pvSource->getName()) : nullptr;
+    return { simPl, nullptr };
 }
 
 PairPlugin createDensityControlPlugin(bool computeTask, const MirState *state, std::string name, std::string fname, std::vector<ParticleVector*> pvs,
@@ -501,6 +516,14 @@ PairPlugin createStatsPlugin(bool computeTask, const MirState *state, std::strin
     auto simPl  = computeTask ? std::make_shared<SimulationStats> (state, name, every, extractPVNames(pvs)) : nullptr;
     auto postPl = computeTask ? nullptr : std::make_shared<PostprocessStats> (name, filename);
 
+    return { simPl, postPl };
+}
+
+PairPlugin createStressTensorPlugin(bool computeTask, const MirState *state, std::string name, ParticleVector *pv,
+                                       int dumpEvery, std::string mask, std::string path)
+{
+    auto simPl  = computeTask ? std::make_shared<StressTensorPlugin> (state, name, pv->getName(), dumpEvery) : nullptr;
+    auto postPl = computeTask ? nullptr : std::make_shared<StressTensorDumper> (name, mask, path);
     return { simPl, postPl };
 }
 

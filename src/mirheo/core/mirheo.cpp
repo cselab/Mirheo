@@ -307,12 +307,12 @@ void Mirheo::setIntegrator(Integrator *integrator, ParticleVector *pv)
         sim_->setIntegrator(integrator->getName(), pv->getName());
 }
 
-void Mirheo::setInteraction(Interaction *interaction, ParticleVector *pv1, ParticleVector *pv2)
+void Mirheo::setInteraction(Interaction *interaction, ParticleVector *pv1, ParticleVector *pv2, ParticleVector *pv3)
 {
     ensureNotInitialized();
 
     if (isComputeTask())
-        sim_->setInteraction(interaction->getName(), pv1->getName(), pv2->getName());
+        sim_->setInteraction(interaction->getName(), pv1->getName(), pv2->getName(), pv3 ? pv3->getName() : "");
 }
 
 void Mirheo::setBouncer(Bouncer *bouncer, ObjectVector *ov, ParticleVector *pv)

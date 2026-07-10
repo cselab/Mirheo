@@ -12,6 +12,7 @@
 #include "morse.h"
 #include "repulsive_lj.h"
 #include "sdpd.h"
+#include "sw.h"
 
 namespace mirheo {
 
@@ -79,6 +80,12 @@ createInteractionPairwise(const MirState *state, const std::string& name, real r
     {
         const auto params = factory_helper::readDensityParams(desc);
         interaction = makePairwiseDensityInteraction(state, name, rc, params);
+    }
+    else if (type == "SW")
+    {
+        const auto params = factory_helper::readSW2Params(desc);
+        const auto stressPeriod = factory_helper::readStressPeriod(desc);
+        interaction = std::make_unique<PairwiseSWInteraction>(state, name, rc, params, stressPeriod);
     }
     else
     {

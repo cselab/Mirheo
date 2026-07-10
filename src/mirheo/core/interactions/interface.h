@@ -94,6 +94,51 @@ public:
     virtual void halo(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1,
                       CellList *cl2, cudaStream_t stream) = 0;
 
+    /** \brief Add needed properties to the given ParticleVectors for future interactions,
+               three-body variant.
+        \param [in] pv1 One ParticleVector of the interaction
+        \param [in] pv2 The second ParticleVector of the interaction
+        \param [in] pv3 The third ParticleVector of the interaction (nullptr for two-body interactions)
+        \param [in] cl1 CellList of pv1
+        \param [in] cl2 CellList of pv2
+        \param [in] cl3 CellList of pv3 (nullptr for two-body interactions)
+
+        The default implementation ignores \p pv3 and \p cl3 and forwards to the
+        two-body setPrerequisites(). Triplewise interactions override this variant.
+     */
+    virtual void setPrerequisites(ParticleVector *pv1, ParticleVector *pv2, ParticleVector *pv3,
+                                  CellList *cl1, CellList *cl2, CellList *cl3);
+
+    /** \brief Compute interactions between bulk particles, three-body variant.
+        \param [in,out] pv1 first interacting ParticleVector
+        \param [in,out] pv2 second interacting ParticleVector
+        \param [in,out] pv3 third interacting ParticleVector (nullptr for two-body interactions)
+        \param [in] cl1 cell-list of pv1
+        \param [in] cl2 cell-list of pv2
+        \param [in] cl3 cell-list of pv3 (nullptr for two-body interactions)
+        \param [in] stream Execution stream
+
+        The default implementation ignores \p pv3 and \p cl3 and forwards to the
+        two-body local(). Triplewise interactions override this variant.
+     */
+    virtual void local(ParticleVector *pv1, ParticleVector *pv2, ParticleVector *pv3,
+                       CellList *cl1, CellList *cl2, CellList *cl3, cudaStream_t stream);
+
+    /** \brief Compute interactions with halo particles, three-body variant.
+        \param [in,out] pv1 first interacting ParticleVector
+        \param [in,out] pv2 second interacting ParticleVector
+        \param [in,out] pv3 third interacting ParticleVector (nullptr for two-body interactions)
+        \param [in] cl1 cell-list of pv1
+        \param [in] cl2 cell-list of pv2
+        \param [in] cl3 cell-list of pv3 (nullptr for two-body interactions)
+        \param [in] stream Execution stream
+
+        The default implementation ignores \p pv3 and \p cl3 and forwards to the
+        two-body halo(). Triplewise interactions override this variant.
+     */
+    virtual void halo(ParticleVector *pv1, ParticleVector *pv2, ParticleVector *pv3,
+                      CellList *cl1, CellList *cl2, CellList *cl3, cudaStream_t stream);
+
 
     /** \return boolean describing if the interaction is an internal interaction.
 

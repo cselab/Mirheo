@@ -231,14 +231,14 @@ Args:
                    pv: the concerned :any:`ParticleVector`
         )")
         .def("setInteraction", &Mirheo::setInteraction,
-             "interaction"_a, "pv1"_a, "pv2"_a, R"(
+             "interaction"_a, "pv1"_a, "pv2"_a, "pv3"_a = nullptr, R"(
                 Forces between two instances of :any:`ParticleVector` (they can be the same) will be computed according to the defined interaction.
 
                 Args:
                     interaction: :any:`Interaction` to apply
                     pv1: first :any:`ParticleVector`
                     pv2: second :any:`ParticleVector`
-
+                    pv3: third :any:`ParticleVector` (optional)
         )")
         .def("setBouncer", &Mirheo::setBouncer,
              "bouncer"_a, "ov"_a, "pv"_a, R"(

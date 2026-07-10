@@ -128,11 +128,12 @@ public:
         \param interactionName Name of the registered interaction (will die if it does not exist)
         \param pv1Name Name of the first registered ParticleVector (will die if it does not exist)
         \param pv2Name Name of the second registered ParticleVector (will die if it does not exist)
+        \param pv3Name Name of the third registered ParticleVector (if set, will die if it does not exist)
 
         This was designed to handle PairwiseInteraction, which needs up to two ParticleVector.
         For self interaction cases (such as MembraneInteraction), \p pv1Name and \p pv2Name must be the same.
      */
-    void setInteraction(const std::string& interactionName, const std::string& pv1Name, const std::string& pv2Name);
+    void setInteraction(const std::string& interactionName, const std::string& pv1Name, const std::string& pv2Name, const std::string& pv3Name = {});
 
     /** \brief Assign a registered \c Bouncer to registered ObjectVector and ParticleVector.
         \param bouncerName Name of the registered bouncer (will die if it does not exist)
@@ -268,7 +269,7 @@ private:
     struct InteractionPrototype
     {
         real rc;
-        ParticleVector *pv1, *pv2;
+        ParticleVector *pv1, *pv2, *pv3;
         Interaction *interaction;
     };
 

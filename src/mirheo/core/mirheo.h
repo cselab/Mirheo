@@ -168,11 +168,12 @@ public:
         \param interaction The registered interaction (will die if it is not registered)
         \param pv1 The first registered ParticleVector (will die if it is not registered)
         \param pv2 The second registered ParticleVector (will die if it is not registered)
+        \param pv3 The third registered ParticleVector (if set, will die if it is not registered)
 
         This was designed to handle PairwiseInteraction, which needs up to two ParticleVector.
         For self interaction cases (such as MembraneInteraction), \p pv1 and \p pv2 must be the same.
     */
-    void setInteraction(Interaction *interaction, ParticleVector *pv1, ParticleVector *pv2);
+    void setInteraction(Interaction *interaction, ParticleVector *pv1, ParticleVector *pv2, ParticleVector *pv3 = nullptr);
 
     /** \brief Assign a registered \c Bouncer to registered ObjectVector and ParticleVector.
         \param bouncer The registered bouncer (will die if it is not registered)

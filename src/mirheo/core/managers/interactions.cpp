@@ -23,8 +23,8 @@ static void insertClist(CellList *cl, std::vector<CellList*>& clists)
 }
 
 void InteractionManager::add(Interaction *interaction,
-                             ParticleVector *pv1, ParticleVector *pv2,
-                             CellList *cl1, CellList *cl2)
+                             ParticleVector *pv1, ParticleVector *pv2, ParticleVector *pv3,
+                             CellList *cl1, CellList *cl2, CellList *cl3)
 {
     const auto input  = interaction->getInputChannels();
     const auto output = interaction->getOutputChannels();
@@ -59,11 +59,15 @@ void InteractionManager::add(Interaction *interaction,
     insertChannels(cl1);
     if (cl1 != cl2)
         insertChannels(cl2);
+    if (cl3 != nullptr && cl1 != cl3 && cl2 != cl3)
+        insertChannels(cl3);
 
     insertClist(cl1, cellListMap_[pv1]);
     insertClist(cl2, cellListMap_[pv2]);
+    if (cl3 != nullptr)
+        insertClist(cl3, cellListMap_[pv3]);
 
-    interactions_.push_back({interaction, pv1, pv2, cl1, cl2});
+    interactions_.push_back({interaction, pv1, pv2, pv3, cl1, cl2, cl3});
 }
 
 bool InteractionManager::empty() const
@@ -205,13 +209,13 @@ void InteractionManager::gatherInputToCells(cudaStream_t stream)
 void InteractionManager::executeLocal(cudaStream_t stream)
 {
     for (auto& p : interactions_)
-        p.interaction->local(p.pv1, p.pv2, p.cl1, p.cl2, stream);
+        p.interaction->local(p.pv1, p.pv2, p.pv3, p.cl1, p.cl2, p.cl3, stream);
 }
 
 void InteractionManager::executeHalo (cudaStream_t stream)
 {
     for (auto& p : interactions_)
-        p.interaction->halo(p.pv1, p.pv2, p.cl1, p.cl2, stream);
+        p.interaction->halo(p.pv1, p.pv2, p.pv3, p.cl1, p.cl2, p.cl3, stream);
 }
 
 std::vector<std::string> InteractionManager::_getExtraChannels(ParticleVector *pv, const std::map<CellList*, ChannelList>& allChannels) const

@@ -13,4 +13,5 @@ target_sources(${LIB_MIR_CORE} PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/norandom_dpd.cu
   ${CMAKE_CURRENT_SOURCE_DIR}/repulsive_lj.cu
   ${CMAKE_CURRENT_SOURCE_DIR}/sdpd.cu
+  ${CMAKE_CURRENT_SOURCE_DIR}/sw.cu
   )

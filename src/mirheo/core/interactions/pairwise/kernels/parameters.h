@@ -10,6 +10,7 @@ namespace mirheo
 
 // forward declaration of pairwise kernels
 
+class PairwiseSW;
 class PairwiseDPD;
 class PairwiseNoRandomDPD;
 class PairwiseViscoElasticDPD;
@@ -44,7 +45,16 @@ class PairwiseSDPD;
 
 // corresponding parameters, visible by users
 
-/// Dissipative Particle Dynamics  parameters
+/// Stillinger-Weber (two-body term) parameters
+struct SW2Params
+{
+    using KernelType = PairwiseSW; ///< the corresponding kernel
+    real epsilon;   ///< force coefficient
+    real sigma;     ///< radius with zero energy in SW potential
+    real A;         ///< SW Parameter
+    real B;         ///< SW Parameter
+};
+
 struct DPDParams
 {
     using KernelType = PairwiseDPD; ///< the corresponding kernel

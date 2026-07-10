@@ -28,3 +28,4 @@ build/
 .tramp_history
 /Mirheo.egg-info/
 /dist/
+.vscode/

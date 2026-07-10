@@ -11,6 +11,7 @@
 #include <mirheo/core/interactions/obj_rod_binding.h>
 #include <mirheo/core/interactions/pairwise/base_pairwise.h>
 #include <mirheo/core/interactions/rod/base_rod.h>
+#include <mirheo/core/interactions/triplewise/base_triplewise.h>
 #include <mirheo/core/pvs/particle_vector.h>
 
 #include <pybind11/stl.h>
@@ -68,6 +69,14 @@ createPairwiseInteraction(const MirState *state, const std::string& name,
 {
     auto parameters = castToMap(kwargs, name);
     return interaction_factory::createPairwiseInteraction(state, name, rc, kind, parameters);
+}
+
+static std::shared_ptr<BaseTriplewiseInteraction>
+createTriplewiseInteraction(const MirState *state, const std::string& name,
+                            real rc, const std::string& kind, py::kwargs kwargs)
+{
+    auto parameters = castToMap(kwargs, name);
+    return interaction_factory::createTriplewiseInteraction(state, name, rc, kind, parameters);
 }
 
 void exportInteractions(py::module& m)
@@ -216,6 +225,22 @@ void exportInteractions(py::module& m)
                     w_\rho(r) = \frac{21}{2\pi r_c^3} \left( 1 - \frac{r}{r_c} \right)^4 \left( 1 + 4 \frac{r}{r_c} \right)
 
 
+        * **SW**:
+            Stillinger-Weber (SW) 2-Body & 3-Body interaction potential which takes into account the angle between the particles
+
+            .. math::
+
+                \varphi_2(r) = A\epsilon \Bigl[B\Bigl(\frac{\sigma}{r}\Bigr)^p - \Bigl(\frac{\sigma}{r}\Bigr)^q\Bigr]\exp\Bigl(\frac{\sigma}{r-r_c}\Bigr)
+
+            .. math::
+
+                \varphi_3(\vec{r}_i,\vec{r}_j,\vec{r}_k)
+                    = h_{jik} + h_{ijk} + h_{ikj} \\
+                    = h(r_{ij}, r_{ki}, \theta_{jik}) + h(r_{ij}, r_{jk}, \theta_{ijk}) + h(r_{ki}, r_{jk}, \theta_{ikj}),
+                
+
+                h(r,s,\theta) = \lambda\epsilon[\cos\theta - \cos\theta_0]^2\exp\Bigl(\frac{\gamma\sigma}{r-r_c}\Bigr)\exp\Bigl(\frac{\gamma\sigma}{s-r_c}\Bigr)
+        
         .. [Groot1997] Groot, R. D., & Warren, P. B. (1997).
             Dissipative particle dynamics: Bridging the gap between atomistic and mesoscopic simulations.
             J. Chem. Phys., 107(11), 4423-4435. `doi <https://doi.org/10.1063/1.474784>`
@@ -603,6 +628,49 @@ void exportInteractions(py::module& m)
              Only lists of 1, 2 and 11 states are supported.
     )");
 
+
+    py::handlers_class<BaseTriplewiseInteraction> pyIntTriplewise(m, "Triplewise", pyInt, R"(
+        Generic triplewise interaction class.
+        Can be applied between any kind of :any:`ParticleVector` classes.
+        The following interactions are currently implemented:
+
+
+        * **Dummy**:
+            A dummy constant force in x-direction, for testing purposes.
+
+            .. math::
+
+                \mathbf{F}_{ij} &= \varepsilon \mathbf{\hat{x}}
+
+        * **SW**:
+            The three-body term of the Stillinger-Weber potential, see [Stillinger1985]_.
+
+        .. [Stillinger1985] Stillinger, F. H. & Weber, T. A.
+                            Computer simulation of local order in condensed phases of silicon.
+                            Physical review B, 1985, 31, 5262
+    )");
+
+    pyIntTriplewise.def(py::init(&createTriplewiseInteraction),
+                        "state"_a, "name"_a, "rc"_a, "kind"_a, R"(
+            Args:
+                name: name of the interaction
+                rc: interaction cut-off (no forces between particles further than **rc** apart)
+                kind: interaction kind (e.g. SW). See below for all possibilities.
+
+            Create one triplewise interaction handler of kind **kind**.
+
+            * **kind** = "Dummy"
+
+                * **epsilon**: :math:`\varepsilon`
+
+            * **kind** = "SW"
+
+                * **lambda_**: :math:`\lambda`, strength of the three-body term
+                * **epsilon**: :math:`\varepsilon`, energy scale
+                * **theta**: :math:`\theta_0`, equilibrium angle
+                * **gamma**: :math:`\gamma`, decay length scale of the angular term
+                * **sigma**: :math:`\sigma`, length scale
+    )");
 
     py::handlers_class<ChainInteraction> pyChainFENE(m, "ChainFENE", pyInt, R"(
         FENE forces between beads of a :any:`ChainVector`.

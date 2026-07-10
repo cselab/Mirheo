@@ -1,0 +1,23 @@
+<?xml version="1.0"?>
+<Xdmf Version="3.0">
+	<Domain>
+		<Grid Name="mesh" GridType="Uniform">
+			<Topology TopologyType="Polyvertex" NumberOfElements="1000" />
+			<Geometry GeometryType="XYZ">
+				<DataItem Dimensions="1000 3" NumberType="Float" Precision="8" Format="HDF">pv.PV-00000.h5:/position</DataItem>
+			</Geometry>
+			<Attribute Name="extraforces" AttributeType="Vector" Center="Node">
+				<Information Name="Typeinfo" Value="Vector" Datatype="double3" RequireShift="False" />
+				<DataItem Dimensions="1000 3" NumberType="Float" Precision="8" Format="HDF">pv.PV-00000.h5:/extraforces</DataItem>
+			</Attribute>
+			<Attribute Name="velocities" AttributeType="Vector" Center="Node">
+				<Information Name="Typeinfo" Value="Vector" Datatype="double" RequireShift="False" />
+				<DataItem Dimensions="1000 3" NumberType="Float" Precision="8" Format="HDF">pv.PV-00000.h5:/velocities</DataItem>
+			</Attribute>
+			<Attribute Name="ids" AttributeType="Scalar" Center="Node">
+				<Information Name="Typeinfo" Value="Scalar" Datatype="int64_t" RequireShift="False" />
+				<DataItem Dimensions="1000 1" NumberType="Int" Precision="8" Format="HDF">pv.PV-00000.h5:/ids</DataItem>
+			</Attribute>
+		</Grid>
+	</Domain>
+</Xdmf>

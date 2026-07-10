@@ -185,6 +185,16 @@ SDPDParams readSDPDParams(ParametersWrap& desc)
     return p;
 }
 
+SW2Params readSW2Params(ParametersWrap& desc)
+{
+    SW2Params p;
+    p.epsilon = desc.read<real>("epsilon");
+    p.sigma   = desc.read<real>("sigma");
+    p.A       = desc.read<real>("A");
+    p.B       = desc.read<real>("B");
+    return p;
+}
+
 
 std::optional<real> readStressPeriod(ParametersWrap& desc)
 {

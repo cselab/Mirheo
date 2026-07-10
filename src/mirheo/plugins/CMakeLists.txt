@@ -11,6 +11,7 @@ set(sources_cpp
 set(sources_cu
   add_force.cu
   add_force_field.cu
+  add_perparticleforce.cu
   add_potential_force.cu
   add_reverse_poiseuille_force.cu
   add_sinusoidal_force.cu
@@ -19,6 +20,7 @@ set(sources_cu
   average_flow.cu
   average_relative_flow.cu
   berendsen_thermostat.cu
+  copy_pv.cu
   density_control.cu
   displacement.cu
   dump_obj_stats.cu
@@ -44,6 +46,7 @@ set(sources_cu
   shear_field.cu
   sinusoidal_field.cu
   stats.cu
+  stress_tensor.cu
   temperaturize.cu
   vacf.cu
   velocity_control.cu

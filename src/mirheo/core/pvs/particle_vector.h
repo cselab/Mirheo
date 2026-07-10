@@ -138,6 +138,7 @@ public:
     void setCoordinates_vector(const std::vector<real3>& coordinates);
     void setVelocities_vector(const std::vector<real3>& velocities);
     void setForces_vector(const std::vector<real3>& forces);
+    void additiveUpdateChannel(const std::string& channelName, real value);
     ///\}
 
     /** Add a new channel to hold additional data per particle.

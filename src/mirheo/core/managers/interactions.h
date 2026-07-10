@@ -23,7 +23,8 @@ public:
     ~InteractionManager() = default;
 
     /// aregister an interaction with the given particle vectors and cell lists
-    void add(Interaction *interaction, ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2);
+    void add(Interaction *interaction, ParticleVector *pv1, ParticleVector *pv2, ParticleVector *pv3,
+             CellList *cl1, CellList *cl2, CellList *cl3);
 
     bool empty() const; ///< \return \c true if no interactions were registered
 
@@ -51,8 +52,8 @@ private:
     struct InteractionPrototype
     {
         Interaction *interaction;
-        ParticleVector *pv1, *pv2;
-        CellList *cl1, *cl2;
+        ParticleVector *pv1, *pv2, *pv3;
+        CellList *cl1, *cl2, *cl3;
     };
 
     using ChannelList = std::vector<Channel>;

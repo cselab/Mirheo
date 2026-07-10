@@ -201,7 +201,6 @@ void exportParticleVectors(py::module& m)
             Returns:
                 A list of :math:`N \times 3` reals: 3 components of force for every of the N particles
         )")
-        //
         .def("setCoordinates", &ParticleVector::setCoordinates_vector, "coordinates"_a, R"(
             Args:
                 coordinates: A list of :math:`N \times 3` reals: 3 components of coordinate for every of the N particles
@@ -213,6 +212,14 @@ void exportParticleVectors(py::module& m)
         .def("setForces",      &ParticleVector::setForces_vector, "forces"_a, R"(
             Args:
                 forces: A list of :math:`N \times 3` reals: 3 components of force for every of the N particles
+        )")
+        .def("additiveUpdateChannel", &ParticleVector::additiveUpdateChannel, "channelName"_a, "value"_a, R"(
+            Increase every positive component of the given real3 channel by `value` and
+            decrease every negative component by `value`; zero components are left unchanged.
+
+            Args:
+                channelName: name of the real3 channel to update
+                value: the increment magnitude
         )");
 
     pypv.attr("MARK_VALUE") = (real)Real3_int::mark_val;

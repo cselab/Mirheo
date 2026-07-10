@@ -17,6 +17,12 @@ class MembraneVector;
 class BaseMembraneInteraction : public Interaction
 {
 public:
+    // two-body interaction: expose the base overloads so that the three-body
+    // variants (with pv3/cl3) remain visible through derived-class pointers
+    using Interaction::setPrerequisites;
+    using Interaction::local;
+    using Interaction::halo;
+
     /** \brief Construct a BaseMembraneInteraction object
         \param [in] state The global state of the system
         \param [in] name The name of the interaction
