@@ -168,9 +168,14 @@ Mirheo::Mirheo(int3 nranks3D, real3 globalDomainSize,
                LogInfo logInfo, CheckpointInfo checkpointInfo,
                real maxObjHalfLength, bool gpuAwareMPI)
 {
-    MPI_Init(nullptr, nullptr);
+    int alreadyInitialized = 0;
+    MPI_Initialized(&alreadyInitialized);
+    if (!alreadyInitialized) {
+        // e.g. mpi4py imported from python initializes MPI before us
+        MPI_Init(nullptr, nullptr);
+        initializedMpi_ = true;
+    }
     MPI_Comm_dup(MPI_COMM_WORLD, &comm_);
-    initializedMpi_ = true;
 
     initLogger(comm_, logInfo);
     init(nranks3D, globalDomainSize, logInfo,
