@@ -12,9 +12,9 @@ Mirheo
 Mirheo requires at least Kepler-generation NVIDIA GPU and depends on a few external tools and libraries:
 
 - Unix-based OS
-- NVIDIA CUDA toolkit version >= 9.2
-- gcc compiler with c++14 support compatible with CUDA installation
-- CMake version >= 3.8
+- NVIDIA CUDA toolkit version >= 11.0
+- gcc compiler with c++17 support compatible with CUDA installation
+- CMake version >= 3.10
 - Python interpreter version >= 3.4
 - MPI library
 - HDF5 parallel library
