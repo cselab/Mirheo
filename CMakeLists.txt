@@ -49,6 +49,16 @@ message("Compiling libmirheo version ${MIR_VERSION_CMAKE_FORMAT}")
 
 project(Mirheo VERSION ${MIR_VERSION_CMAKE_FORMAT} LANGUAGES C CXX CUDA)
 
+# Mirheo is compiled as C++17 (see src/mirheo/core/CMakeLists.txt, which sets
+# cxx_std_17 and passes --std=c++17 to nvcc). nvcc only accepts --std=c++17 from
+# CUDA 11.0 onwards, so older toolkits fail late with the unhelpful message
+# "nvcc fatal : Value 'c++17' is not defined for option 'std'". Fail early instead.
+if (CMAKE_CUDA_COMPILER_VERSION VERSION_LESS 11.0)
+  message(FATAL_ERROR
+      "Mirheo requires the CUDA toolkit >= 11.0 for C++17 support in nvcc, "
+      "but version ${CMAKE_CUDA_COMPILER_VERSION} was found.")
+endif()
+
 # ***********************
 # Alias directories
 # ***********************
